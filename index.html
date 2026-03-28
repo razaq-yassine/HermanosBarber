@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Hermanos Barber - Barbier d'Excellence avec animation de défilement immersive">
     <title>Hermanos Barber - Barbier d'Excellence</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -10,245 +11,270 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Skip to Content Link for Accessibility -->
+    <a href="#main-content" class="skip-to-content" aria-label="Passer au contenu principal">Passer au contenu</a>
+
     <!-- Navigation -->
-    <nav class="nav">
-        <div class="nav-logo">HERMANOS BARBER</div>
+    <nav class="nav" role="navigation" aria-label="Navigation principale">
+        <div class="nav-logo" aria-label="Logo Hermanos Barber">HERMANOS BARBER</div>
         <div class="nav-menu">
-            <a href="#hero" class="nav-link">Accueil</a>
+            <a href="#main-content" class="nav-link">Accueil</a>
             <a href="#about" class="nav-link">À Propos</a>
             <a href="#gallery" class="nav-link">Galerie</a>
             <a href="#services" class="nav-link">Services</a>
             <a href="#contact" class="nav-link">Contact</a>
         </div>
         <div class="nav-phone">
-            <a href="tel:+33000000000" class="phone-btn">Réserver</a>
+            <a href="tel:+33000000000" class="phone-btn" aria-label="Appeler pour réserver">Réserver</a>
         </div>
     </nav>
 
-    <!-- Hero Section -->
-    <section id="hero" class="section hero">
-        <div class="hero-bg"></div>
-        <div class="hero-content">
-            <h1 class="hero-title">
-                <span class="hero-title-line">HERMANOS</span>
-                <span class="hero-title-line">BARBER</span>
-            </h1>
-            <p class="hero-subtitle">L'art de la coupe masculine</p>
-            <div class="hero-cta">
-                <a href="tel:+33000000000" class="cta-button">Appelez maintenant</a>
-            </div>
+    <!-- Loading Indicator -->
+    <div class="loading-indicator" role="status" aria-live="polite" aria-label="Chargement de l'animation">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Chargement...</p>
+    </div>
+
+    <!-- Animation Hero Section -->
+    <section id="animation-hero" class="animation-hero-section" role="banner" aria-label="Animation de défilement">
+        <div class="animation-container">
+            <img 
+                id="animation-frame" 
+                class="animation-frame" 
+                src="" 
+                alt="Animation de barbier - Image 1 sur 250"
+                aria-live="polite"
+            >
+            <script>
+                // Set initial frame based on device type (before page loads)
+                (function() {
+                    const isMobile = window.innerWidth <= 768;
+                    const framePath = isMobile ? 
+                        './assets/frames-mobile/ezgif-frame-001.webp' : 
+                        './assets/frames/ezgif-frame-001.webp';
+                    document.getElementById('animation-frame').src = framePath;
+                })();
+            </script>
         </div>
-        <div class="scroll-indicator">
+        <div class="scroll-indicator" role="button" tabindex="0" aria-label="Faire défiler vers le bas">
             <div class="scroll-arrow"></div>
+            <span class="scroll-text">Défiler</span>
         </div>
     </section>
 
-    <!-- Video Section 1 -->
-    <section class="section video-section" data-scroll-direction="vertical">
-        <div class="video-container pinned">
-            <video class="video-bg" autoplay muted loop playsinline>
-                <source src="assets/VIDEO-2026-01-06-17-16-50.mp4" type="video/mp4">
-            </video>
-            <div class="video-overlay">
-                <h2 class="video-title">Expertise & Passion</h2>
-                <p class="video-text">Chaque coupe est une œuvre d'art</p>
+    <!-- Main Content -->
+    <main id="main-content">
+        <!-- Video Section 1 -->
+        <section class="section video-section" data-scroll-direction="vertical" aria-label="Vidéo expertise et passion">
+            <div class="video-container pinned">
+                <video class="video-bg" autoplay muted loop playsinline aria-label="Vidéo de présentation du barbier">
+                    <source src="assets/VIDEO-2026-01-06-17-16-50.mp4" type="video/mp4">
+                    Votre navigateur ne supporte pas la lecture de vidéos.
+                </video>
+                <div class="video-overlay">
+                    <h2 class="video-title">Expertise & Passion</h2>
+                    <p class="video-text">Chaque coupe est une œuvre d'art</p>
+                </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- About Section -->
-    <section id="about" class="section about-section">
-        <div class="about-container">
-            <div class="about-image">
-                <img src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=800&q=80" alt="Barbier professionnel">
-                <div class="about-image-border"></div>
-            </div>
-            <div class="about-content">
-                <span class="about-tag">À PROPOS</span>
-                <h2 class="about-title">Votre Barbier de Confiance</h2>
-                <p class="about-text">
-                    Bienvenue chez Hermanos Barber, où la tradition rencontre la modernité. 
-                    Avec des années d'expérience et une passion pour l'art de la coupe, 
-                    je m'engage à vous offrir un service exceptionnel et personnalisé.
-                </p>
-                <p class="about-text">
-                    Chaque client est unique, et chaque coupe est réalisée avec précision 
-                    et attention aux détails pour révéler votre meilleur style.
-                </p>
-                <div class="about-stats">
-                    <div class="stat">
-                        <span class="stat-number">10+</span>
-                        <span class="stat-label">Années d'expérience</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-number">1000+</span>
-                        <span class="stat-label">Clients satisfaits</span>
+        <!-- About Section -->
+        <section id="about" class="section about-section" aria-labelledby="about-title">
+            <div class="about-container">
+                <div class="about-image">
+                    <img src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=800&q=80" alt="Barbier professionnel en train de travailler">
+                    <div class="about-image-border" aria-hidden="true"></div>
+                </div>
+                <div class="about-content">
+                    <span class="about-tag">À PROPOS</span>
+                    <h2 id="about-title" class="about-title">Votre Barbier de Confiance</h2>
+                    <p class="about-text">
+                        Bienvenue chez Hermanos Barber, où la tradition rencontre la modernité. 
+                        Avec des années d'expérience et une passion pour l'art de la coupe, 
+                        je m'engage à vous offrir un service exceptionnel et personnalisé.
+                    </p>
+                    <p class="about-text">
+                        Chaque client est unique, et chaque coupe est réalisée avec précision 
+                        et attention aux détails pour révéler votre meilleur style.
+                    </p>
+                    <div class="about-stats" role="list" aria-label="Statistiques">
+                        <div class="stat" role="listitem">
+                            <span class="stat-number" aria-label="10 ans">10+</span>
+                            <span class="stat-label">Années d'expérience</span>
+                        </div>
+                        <div class="stat" role="listitem">
+                            <span class="stat-number" aria-label="Plus de 1000 clients">1000+</span>
+                            <span class="stat-label">Clients satisfaits</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- Gallery Section with Horizontal Scroll -->
-    <section id="gallery" class="section gallery-section">
-        <div class="gallery-header">
-            <h2 class="section-title">Notre Galerie</h2>
-        </div>
-        <div class="gallery-wrapper">
-            <div class="gallery-track">
-                <div class="gallery-item">
-                    <img src="assets/PHOTO-2026-01-06-17-17-12.jpg" alt="Coupe 1">
-                    <div class="gallery-overlay">
-                        <span class="gallery-text">Style Classique</span>
+        <!-- Gallery Section with Horizontal Scroll -->
+        <section id="gallery" class="section gallery-section" aria-labelledby="gallery-title">
+            <div class="gallery-header">
+                <h2 id="gallery-title" class="section-title">Notre Galerie</h2>
+            </div>
+            <div class="gallery-wrapper" role="region" aria-label="Galerie de photos défilante horizontalement">
+                <div class="gallery-track">
+                    <div class="gallery-item">
+                        <img src="assets/PHOTO-2026-01-06-17-17-12.jpg" alt="Style classique - Coupe de cheveux élégante">
+                        <div class="gallery-overlay">
+                            <span class="gallery-text">Style Classique</span>
+                        </div>
                     </div>
-                </div>
-                <div class="gallery-item">
-                    <img src="assets/PHOTO-2026-01-06-17-17-13.jpg" alt="Coupe 2">
-                    <div class="gallery-overlay">
-                        <span class="gallery-text">Fade Moderne</span>
+                    <div class="gallery-item">
+                        <img src="assets/PHOTO-2026-01-06-17-17-13.jpg" alt="Fade moderne - Dégradé contemporain">
+                        <div class="gallery-overlay">
+                            <span class="gallery-text">Fade Moderne</span>
+                        </div>
                     </div>
-                </div>
-                <div class="gallery-item">
-                    <img src="assets/PHOTO-2026-01-06-17-17-15.jpg" alt="Coupe 3">
-                    <div class="gallery-overlay">
-                        <span class="gallery-text">Barbe Sculptée</span>
+                    <div class="gallery-item">
+                        <img src="assets/PHOTO-2026-01-06-17-17-15.jpg" alt="Barbe sculptée - Taille de barbe professionnelle">
+                        <div class="gallery-overlay">
+                            <span class="gallery-text">Barbe Sculptée</span>
+                        </div>
                     </div>
-                </div>
-                <div class="gallery-item">
-                    <img src="assets/PHOTO-2026-01-06-17-17-16.jpg" alt="Coupe 4">
-                    <div class="gallery-overlay">
-                        <span class="gallery-text">Style Vintage</span>
+                    <div class="gallery-item">
+                        <img src="assets/PHOTO-2026-01-06-17-17-16.jpg" alt="Style vintage - Coupe rétro">
+                        <div class="gallery-overlay">
+                            <span class="gallery-text">Style Vintage</span>
+                        </div>
                     </div>
-                </div>
-                <div class="gallery-item">
-                    <img src="assets/PHOTO-2026-01-06-17-17-20.jpg" alt="Coupe 5">
-                    <div class="gallery-overlay">
-                        <span class="gallery-text">Dégradé Précis</span>
+                    <div class="gallery-item">
+                        <img src="assets/PHOTO-2026-01-06-17-17-20.jpg" alt="Dégradé précis - Fade technique">
+                        <div class="gallery-overlay">
+                            <span class="gallery-text">Dégradé Précis</span>
+                        </div>
                     </div>
-                </div>
-                <div class="gallery-item">
-                    <img src="assets/PHOTO-2026-01-06-17-17-23.jpg" alt="Coupe 6">
-                    <div class="gallery-overlay">
-                        <span class="gallery-text">Finition Parfaite</span>
+                    <div class="gallery-item">
+                        <img src="assets/PHOTO-2026-01-06-17-17-23.jpg" alt="Finition parfaite - Résultat impeccable">
+                        <div class="gallery-overlay">
+                            <span class="gallery-text">Finition Parfaite</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- Video Section 2 -->
-    <section class="section video-section reverse">
-        <div class="video-container">
-            <video class="video-bg" autoplay muted loop playsinline>
-                <source src="assets/VIDEO-2026-01-06-17-17-01.mp4" type="video/mp4">
-            </video>
-            <div class="video-overlay">
-                <h2 class="video-title">Précision & Style</h2>
-                <p class="video-text">Des coupes qui vous ressemblent</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- Services Section -->
-    <section id="services" class="section services-section">
-        <h2 class="section-title">Nos Services</h2>
-        <div class="services-grid">
-            <div class="service-card">
-                <div class="service-icon">✂️</div>
-                <h3 class="service-title">Coupe Homme</h3>
-                <p class="service-description">Coupe classique ou moderne, adaptée à votre style et morphologie</p>
-                <span class="service-price">À partir de 25€</span>
-            </div>
-            <div class="service-card">
-                <div class="service-icon">🪒</div>
-                <h3 class="service-title">Rasage & Barbe</h3>
-                <p class="service-description">Taille de barbe professionnelle et rasage traditionnel au rasoir</p>
-                <span class="service-price">À partir de 20€</span>
-            </div>
-            <div class="service-card">
-                <div class="service-icon">💈</div>
-                <h3 class="service-title">Coupe + Barbe</h3>
-                <p class="service-description">Forfait complet pour un look impeccable de la tête aux pieds</p>
-                <span class="service-price">À partir de 40€</span>
-            </div>
-            <div class="service-card">
-                <div class="service-icon">⚡</div>
-                <h3 class="service-title">Dégradé</h3>
-                <p class="service-description">Dégradé précis et soigné pour un style moderne et net</p>
-                <span class="service-price">À partir de 30€</span>
-            </div>
-        </div>
-    </section>
-
-    <!-- Video Section 3 -->
-    <section class="section video-section">
-        <div class="video-container">
-            <video class="video-bg" autoplay muted loop playsinline>
-                <source src="assets/VIDEO-2026-01-06-17-17-09.mp4" type="video/mp4">
-            </video>
-            <div class="video-overlay">
-                <h2 class="video-title">Tradition & Modernité</h2>
-                <p class="video-text">L'excellence à chaque visite</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- Contact Section -->
-    <section id="contact" class="section contact-section">
-        <div class="contact-container">
-            <div class="contact-content">
-                <h2 class="section-title">Nous Trouver</h2>
-                <div class="contact-info">
-                    <div class="contact-item">
-                        <span class="contact-label">📍 Adresse</span>
-                        <a href="https://maps.app.goo.gl/hiPajAJcZhjsGRiw7?g_st=aw" target="_blank" class="contact-value">
-                            Voir sur Google Maps
-                        </a>
-                    </div>
-                    <div class="contact-item">
-                        <span class="contact-label">📞 Téléphone</span>
-                        <a href="tel:+33000000000" class="contact-value phone-highlight">
-                            Appelez pour réserver
-                        </a>
-                    </div>
-                    <div class="contact-item">
-                        <span class="contact-label">🕐 Horaires</span>
-                        <p class="contact-value">
-                            Lundi - Vendredi: 9h - 19h<br>
-                            Samedi: 9h - 18h<br>
-                            Dimanche: Fermé
-                        </p>
-                    </div>
-                </div>
-                <div class="contact-cta">
-                    <a href="tel:+33000000000" class="cta-button large">Réserver maintenant</a>
+        <!-- Video Section 2 -->
+        <section class="section video-section reverse" aria-label="Vidéo précision et style">
+            <div class="video-container">
+                <video class="video-bg" autoplay muted loop playsinline aria-label="Vidéo de coupe de cheveux">
+                    <source src="assets/VIDEO-2026-01-06-17-17-01.mp4" type="video/mp4">
+                    Votre navigateur ne supporte pas la lecture de vidéos.
+                </video>
+                <div class="video-overlay">
+                    <h2 class="video-title">Précision & Style</h2>
+                    <p class="video-text">Des coupes qui vous ressemblent</p>
                 </div>
             </div>
-            <div class="contact-map">
-                <iframe 
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3024.3972193!2d-74.0060!3d40.7128!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDDCsDQyJzQ2LjEiTiA3NMKwMDAnMjEuNiJX!5e0!3m2!1sen!2s!4v1234567890"
-                    width="100%" 
-                    height="100%" 
-                    style="border:0;" 
-                    allowfullscreen="" 
-                    loading="lazy">
-                </iframe>
+        </section>
+
+        <!-- Services Section -->
+        <section id="services" class="section services-section" aria-labelledby="services-title">
+            <h2 id="services-title" class="section-title">Nos Services</h2>
+            <div class="services-grid" role="list">
+                <article class="service-card" role="listitem">
+                    <div class="service-icon" aria-hidden="true">✂️</div>
+                    <h3 class="service-title">Coupe Homme</h3>
+                    <p class="service-description">Coupe classique ou moderne, adaptée à votre style et morphologie</p>
+                    <span class="service-price">À partir de 25€</span>
+                </article>
+                <article class="service-card" role="listitem">
+                    <div class="service-icon" aria-hidden="true">🪒</div>
+                    <h3 class="service-title">Rasage & Barbe</h3>
+                    <p class="service-description">Taille de barbe professionnelle et rasage traditionnel au rasoir</p>
+                    <span class="service-price">À partir de 20€</span>
+                </article>
+                <article class="service-card" role="listitem">
+                    <div class="service-icon" aria-hidden="true">💈</div>
+                    <h3 class="service-title">Coupe + Barbe</h3>
+                    <p class="service-description">Forfait complet pour un look impeccable de la tête aux pieds</p>
+                    <span class="service-price">À partir de 40€</span>
+                </article>
+                <article class="service-card" role="listitem">
+                    <div class="service-icon" aria-hidden="true">⚡</div>
+                    <h3 class="service-title">Dégradé</h3>
+                    <p class="service-description">Dégradé précis et soigné pour un style moderne et net</p>
+                    <span class="service-price">À partir de 30€</span>
+                </article>
             </div>
-        </div>
-    </section>
+        </section>
+
+        <!-- Video Section 3 -->
+        <section class="section video-section" aria-label="Vidéo tradition et modernité">
+            <div class="video-container">
+                <video class="video-bg" autoplay muted loop playsinline aria-label="Vidéo de présentation du salon">
+                    <source src="assets/VIDEO-2026-01-06-17-17-09.mp4" type="video/mp4">
+                    Votre navigateur ne supporte pas la lecture de vidéos.
+                </video>
+                <div class="video-overlay">
+                    <h2 class="video-title">Tradition & Modernité</h2>
+                    <p class="video-text">L'excellence à chaque visite</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section id="contact" class="section contact-section" aria-labelledby="contact-title">
+            <div class="contact-container">
+                <div class="contact-content">
+                    <h2 id="contact-title" class="section-title">Nous Trouver</h2>
+                    <div class="contact-info">
+                        <div class="contact-item">
+                            <span class="contact-label">📍 Adresse</span>
+                            <a href="https://maps.app.goo.gl/hiPajAJcZhjsGRiw7?g_st=aw" target="_blank" rel="noopener noreferrer" class="contact-value" aria-label="Voir l'adresse sur Google Maps">
+                                Voir sur Google Maps
+                            </a>
+                        </div>
+                        <div class="contact-item">
+                            <span class="contact-label">📞 Téléphone</span>
+                            <a href="tel:+33000000000" class="contact-value phone-highlight" aria-label="Appeler le numéro de téléphone">
+                                Appelez pour réserver
+                            </a>
+                        </div>
+                        <div class="contact-item">
+                            <span class="contact-label">🕐 Horaires</span>
+                            <p class="contact-value">
+                                Lundi - Vendredi: 9h - 19h<br>
+                                Samedi: 9h - 18h<br>
+                                Dimanche: Fermé
+                            </p>
+                        </div>
+                    </div>
+                    <div class="contact-cta">
+                        <a href="tel:+33000000000" class="cta-button large" aria-label="Réserver maintenant par téléphone">Réserver maintenant</a>
+                    </div>
+                </div>
+                <div class="contact-map">
+                    <iframe 
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3024.3972193!2d-74.0060!3d40.7128!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDDCsDQyJzQ2LjEiTiA3NMKwMDAnMjEuNiJX!5e0!3m2!1sen!2s!4v1234567890"
+                        width="100%" 
+                        height="100%" 
+                        style="border:0;" 
+                        allowfullscreen="" 
+                        loading="lazy"
+                        title="Carte Google Maps montrant l'emplacement de Hermanos Barber">
+                    </iframe>
+                </div>
+            </div>
+        </section>
+    </main>
 
     <!-- Footer -->
-    <footer class="footer">
+    <footer class="footer" role="contentinfo">
         <div class="footer-content">
-            <div class="footer-logo">HERMANOS BARBER</div>
+            <div class="footer-logo" aria-label="Logo Hermanos Barber">HERMANOS BARBER</div>
             <p class="footer-text">© 2026 Hermanos Barber. Tous droits réservés.</p>
         </div>
     </footer>
 
-    <!-- Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <!-- GSAP and ScrollTrigger Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" integrity="sha512-7eHRwcbYkK4d9g/6tD/mhkf++eoTHwpNM9woBxtPUBWm67zeAfFC+HrdoE2GanKeocly/VxeLvIqwvCdk7qScg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" integrity="sha512-onMTRKJBKz8M1TnqqDuGBlowlH0ohFzMXYRNebz+yOcc5TQr/zAKsthzhuv0hiyUKEiQEQXEynnXCvNTOk50dg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="animation-config.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
-

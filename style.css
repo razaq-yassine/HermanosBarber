@@ -1,3 +1,9 @@
+/* ===================================
+   HERMANOSBARBER2 - Scroll Animation Landing
+   Brand Identity: Black & Yellow
+   Fonts: Bebas Neue (headings), Montserrat (body)
+   =================================== */
+
 /* Reset & Base Styles */
 * {
     margin: 0;
@@ -5,10 +11,11 @@
     box-sizing: border-box;
 }
 
+/* CSS Custom Properties - Brand Colors */
 :root {
     --black: #000000;
-    --white: #ffffff;
     --yellow: #FFD700;
+    --white: #ffffff;
     --yellow-glow: #FFED4E;
     --dark-gray: #1a1a1a;
     --light-gray: #f5f5f5;
@@ -32,7 +39,27 @@ h1, h2, h3 {
     letter-spacing: 2px;
 }
 
-/* Navigation */
+/* Skip to Content Link - Accessibility */
+.skip-to-content {
+    position: absolute;
+    top: -100px;
+    left: 0;
+    background: var(--yellow);
+    color: var(--black);
+    padding: 1rem 2rem;
+    text-decoration: none;
+    font-weight: 700;
+    z-index: 10000;
+    transition: top 0.3s ease;
+}
+
+.skip-to-content:focus {
+    top: 0;
+}
+
+/* ===================================
+   NAVIGATION - Fixed Positioning
+   =================================== */
 .nav {
     position: fixed;
     top: 0;
@@ -48,9 +75,11 @@ h1, h2, h3 {
     transition: all 0.3s ease;
 }
 
+/* Navigation Scroll Effect */
 .nav.scrolled {
     background: rgba(0,0,0,0.95);
     padding: 1rem 5%;
+    box-shadow: 0 2px 20px rgba(255, 215, 0, 0.1);
 }
 
 .nav-logo {
@@ -97,6 +126,11 @@ h1, h2, h3 {
     width: 100%;
 }
 
+.nav-link:focus {
+    outline: 2px solid var(--yellow);
+    outline-offset: 4px;
+}
+
 .phone-btn {
     padding: 0.8rem 1.5rem;
     background: var(--yellow);
@@ -115,145 +149,110 @@ h1, h2, h3 {
     transform: translateY(-2px);
 }
 
-/* Section Base */
-.section {
-    min-height: 100vh;
+.phone-btn:focus {
+    outline: 2px solid var(--white);
+    outline-offset: 4px;
+}
+
+/* ===================================
+   LOADING INDICATOR
+   =================================== */
+.loading-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-    position: relative;
+    height: 100vh;
+    background: var(--black);
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    scroll-snap-align: start;
+    z-index: 9999;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
 }
 
-/* Hero Section */
-.hero {
+.loading-indicator.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.loading-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid rgba(255, 215, 0, 0.2);
+    border-top-color: var(--yellow);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-text {
+    margin-top: 1.5rem;
+    color: var(--yellow);
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+}
+
+/* ===================================
+   ANIMATION HERO SECTION - 100vh Height
+   =================================== */
+.animation-hero-section {
     position: relative;
+    width: 100%;
+    height: 100vh;
     overflow: hidden;
+    background: var(--black);
 }
 
-.hero-bg {
+.animation-container {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, var(--black) 0%, var(--dark-gray) 100%);
-}
-
-.hero-bg::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, var(--yellow) 0%, transparent 70%);
-    opacity: 0.1;
-    animation: pulse 4s ease-in-out infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.1; }
-    50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.15; }
-}
-
-.hero-content {
-    position: relative;
-    z-index: 2;
-    text-align: center;
-    padding: 2rem;
-}
-
-.hero-title {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 0;
+    justify-content: center;
 }
 
-.hero-title-line {
-    font-size: clamp(4rem, 15vw, 10rem);
-    font-weight: 900;
-    color: var(--white);
-    text-shadow: 
-        0 0 10px var(--yellow),
-        0 0 20px var(--yellow),
-        0 0 30px var(--yellow),
-        0 0 40px var(--yellow);
-    line-height: 0.9;
-    letter-spacing: 0.1em;
+.animation-frame {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
-.hero-subtitle {
-    font-size: clamp(1rem, 3vw, 1.5rem);
-    color: var(--yellow);
-    margin-top: 2rem;
-    font-weight: 300;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-}
-
-.hero-cta {
-    margin-top: 3rem;
-}
-
-.cta-button {
-    display: inline-block;
-    padding: 1.2rem 3rem;
-    background: var(--yellow);
-    color: var(--black);
-    text-decoration: none;
-    font-weight: 700;
-    font-size: 1.1rem;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    border-radius: 50px;
-    box-shadow: 
-        0 0 20px rgba(255, 215, 0, 0.5),
-        0 10px 30px rgba(0, 0, 0, 0.3);
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.cta-button::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 0;
-    height: 0;
-    background: var(--white);
-    border-radius: 50%;
-    transition: width 0.6s ease, height 0.6s ease;
-}
-
-.cta-button:hover::before {
-    width: 300px;
-    height: 300px;
-}
-
-.cta-button:hover {
-    box-shadow: 
-        0 0 40px rgba(255, 215, 0, 0.8),
-        0 10px 40px rgba(0, 0, 0, 0.5);
-    transform: translateY(-5px);
-}
-
-.cta-button span {
-    position: relative;
-    z-index: 1;
-}
-
+/* Scroll Indicator Styling */
 .scroll-indicator {
     position: absolute;
     bottom: 3rem;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 2;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.scroll-indicator:hover {
+    transform: translateX(-50%) translateY(-5px);
+}
+
+.scroll-indicator:focus {
+    outline: 2px solid var(--yellow);
+    outline-offset: 8px;
 }
 
 .scroll-arrow {
@@ -262,6 +261,7 @@ h1, h2, h3 {
     border: 2px solid var(--yellow);
     border-radius: 25px;
     position: relative;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
 }
 
 .scroll-arrow::before {
@@ -274,15 +274,44 @@ h1, h2, h3 {
     height: 6px;
     background: var(--yellow);
     border-radius: 50%;
-    animation: scroll 2s infinite;
+    animation: scrollDown 2s infinite;
+    box-shadow: 0 0 10px var(--yellow-glow);
 }
 
-@keyframes scroll {
-    0% { top: 10px; opacity: 1; }
-    100% { top: 30px; opacity: 0; }
+@keyframes scrollDown {
+    0% { 
+        top: 10px; 
+        opacity: 1; 
+    }
+    100% { 
+        top: 30px; 
+        opacity: 0; 
+    }
 }
 
-/* Video Section */
+.scroll-text {
+    color: var(--yellow);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* ===================================
+   SECTION BASE STYLES
+   =================================== */
+.section {
+    min-height: 100vh;
+    width: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ===================================
+   VIDEO SECTIONS
+   =================================== */
 .video-section {
     padding: 0;
 }
@@ -292,6 +321,11 @@ h1, h2, h3 {
     height: 100vh;
     position: relative;
     overflow: hidden;
+}
+
+.video-container.pinned {
+    position: sticky;
+    top: 0;
 }
 
 .video-bg {
@@ -311,12 +345,14 @@ h1, h2, h3 {
     width: 90%;
 }
 
+/* Yellow Glow Effects on Titles */
 .video-title {
     font-size: clamp(3rem, 8vw, 6rem);
     color: var(--white);
     text-shadow: 
         0 0 20px var(--yellow),
-        0 0 40px var(--yellow);
+        0 0 40px var(--yellow),
+        0 0 60px rgba(255, 215, 0, 0.5);
     margin-bottom: 1rem;
 }
 
@@ -327,7 +363,9 @@ h1, h2, h3 {
     letter-spacing: 2px;
 }
 
-/* About Section */
+/* ===================================
+   ABOUT SECTION
+   =================================== */
 .about-section {
     background: var(--dark-gray);
     padding: 8rem 5%;
@@ -384,6 +422,7 @@ h1, h2, h3 {
     font-size: clamp(2.5rem, 5vw, 4rem);
     margin: 1rem 0 2rem 0;
     color: var(--white);
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
 }
 
 .about-text {
@@ -419,7 +458,9 @@ h1, h2, h3 {
     letter-spacing: 1px;
 }
 
-/* Gallery Section */
+/* ===================================
+   GALLERY SECTION
+   =================================== */
 .gallery-section {
     background: var(--black);
     padding: 8rem 0;
@@ -435,7 +476,9 @@ h1, h2, h3 {
     font-size: clamp(3rem, 6vw, 5rem);
     text-align: center;
     color: var(--white);
-    text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+    text-shadow: 
+        0 0 20px rgba(255, 215, 0, 0.3),
+        0 0 40px rgba(255, 215, 0, 0.2);
 }
 
 .gallery-wrapper {
@@ -482,6 +525,10 @@ h1, h2, h3 {
     opacity: 1;
 }
 
+.gallery-item:focus .gallery-overlay {
+    opacity: 1;
+}
+
 .gallery-item:hover img {
     transform: scale(1.1);
 }
@@ -492,9 +539,12 @@ h1, h2, h3 {
     color: var(--yellow);
     text-transform: uppercase;
     letter-spacing: 2px;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
 }
 
-/* Services Section */
+/* ===================================
+   SERVICES SECTION
+   =================================== */
 .services-section {
     background: var(--dark-gray);
     padding: 8rem 5%;
@@ -558,6 +608,7 @@ h1, h2, h3 {
     font-size: 1.8rem;
     color: var(--yellow);
     margin-bottom: 1rem;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
 }
 
 .service-description {
@@ -576,7 +627,9 @@ h1, h2, h3 {
     font-size: 1.1rem;
 }
 
-/* Contact Section */
+/* ===================================
+   CONTACT SECTION
+   =================================== */
 .contact-section {
     background: var(--black);
     padding: 8rem 5%;
@@ -627,6 +680,11 @@ h1, h2, h3 {
     color: var(--yellow);
 }
 
+.contact-value:focus {
+    outline: 2px solid var(--yellow);
+    outline-offset: 4px;
+}
+
 .phone-highlight {
     font-size: 1.3rem;
     font-weight: 700;
@@ -634,6 +692,55 @@ h1, h2, h3 {
 
 .contact-cta {
     margin-top: 2rem;
+}
+
+.cta-button {
+    display: inline-block;
+    padding: 1.2rem 3rem;
+    background: var(--yellow);
+    color: var(--black);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    border-radius: 50px;
+    box-shadow: 
+        0 0 20px rgba(255, 215, 0, 0.5),
+        0 10px 30px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.cta-button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 0;
+    height: 0;
+    background: var(--white);
+    border-radius: 50%;
+    transition: width 0.6s ease, height 0.6s ease;
+}
+
+.cta-button:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+.cta-button:hover {
+    box-shadow: 
+        0 0 40px rgba(255, 215, 0, 0.8),
+        0 10px 40px rgba(0, 0, 0, 0.5);
+    transform: translateY(-5px);
+}
+
+.cta-button:focus {
+    outline: 2px solid var(--white);
+    outline-offset: 4px;
 }
 
 .cta-button.large {
@@ -650,7 +757,9 @@ h1, h2, h3 {
     border: 3px solid var(--yellow);
 }
 
-/* Footer */
+/* ===================================
+   FOOTER
+   =================================== */
 .footer {
     background: var(--dark-gray);
     padding: 3rem 5%;
@@ -672,12 +781,13 @@ h1, h2, h3 {
     font-size: 0.9rem;
 }
 
-/* Responsive */
+/* ===================================
+   RESPONSIVE BREAKPOINTS
+   Mobile: <768px | Desktop: ≥768px
+   =================================== */
+
+/* Tablet and Below (≤1024px) */
 @media (max-width: 1024px) {
-    .nav-menu {
-        display: none;
-    }
-    
     .about-container,
     .contact-container {
         grid-template-columns: 1fr;
@@ -690,7 +800,9 @@ h1, h2, h3 {
     }
 }
 
+/* Mobile Viewport (<768px) */
 @media (max-width: 768px) {
+    /* Navigation - Hide menu, show only logo and phone */
     .nav {
         padding: 1rem 3%;
     }
@@ -699,20 +811,107 @@ h1, h2, h3 {
         font-size: 1.5rem;
     }
     
-    .services-grid {
-        grid-template-columns: 1fr;
+    .nav-menu {
+        display: none;
+    }
+    
+    /* Animation Hero - Adjust for mobile */
+    .animation-hero-section {
+        height: 100vh;
+    }
+    
+    .scroll-indicator {
+        bottom: 2rem;
+    }
+    
+    .scroll-arrow {
+        width: 25px;
+        height: 40px;
+    }
+    
+    /* Video sections */
+    .video-title {
+        font-size: clamp(2rem, 6vw, 3rem);
+    }
+    
+    .video-text {
+        font-size: clamp(0.9rem, 2vw, 1.2rem);
+    }
+    
+    /* About section - Stack layout */
+    .about-section {
+        padding: 5rem 5%;
     }
     
     .about-stats {
         gap: 2rem;
+        flex-wrap: wrap;
+    }
+    
+    /* Gallery */
+    .gallery-section {
+        padding: 5rem 0;
+    }
+    
+    .gallery-item {
+        width: 250px;
+        height: 350px;
+    }
+    
+    /* Services - Single column */
+    .services-section {
+        padding: 5rem 5%;
+    }
+    
+    .services-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Contact */
+    .contact-section {
+        padding: 5rem 5%;
     }
     
     .contact-map {
         height: 300px;
     }
+    
+    /* CTA buttons */
+    .cta-button {
+        padding: 1rem 2rem;
+        font-size: 1rem;
+    }
+    
+    .cta-button.large {
+        font-size: 1.1rem;
+        padding: 1.2rem 2.5rem;
+    }
 }
 
-/* Custom Scrollbar */
+/* Small Mobile (<480px) */
+@media (max-width: 480px) {
+    .nav-logo {
+        font-size: 1.2rem;
+    }
+    
+    .phone-btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.85rem;
+    }
+    
+    .section-title {
+        font-size: clamp(2rem, 8vw, 3rem);
+    }
+    
+    .gallery-item {
+        width: 200px;
+        height: 300px;
+    }
+}
+
+/* ===================================
+   CUSTOM SCROLLBAR
+   =================================== */
 ::-webkit-scrollbar {
     width: 10px;
 }
@@ -730,3 +929,84 @@ h1, h2, h3 {
     background: var(--yellow-glow);
 }
 
+/* ===================================
+   PERFORMANCE OPTIMIZATIONS
+   =================================== */
+.animation-frame,
+.video-bg,
+.gallery-track {
+    will-change: transform;
+}
+
+/* Reduced Motion Support - Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .scroll-arrow::before {
+        animation: none;
+    }
+}
+
+
+/* ===================================
+   FRAME TEXT OVERLAYS - Snap Scroll
+   =================================== */
+.frame-text-overlays {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.frame-text {
+    position: absolute;
+    top: 50%;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2rem, 5vw, 4rem);
+    color: var(--yellow);
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 
+                 0 0 40px rgba(255, 215, 0, 0.4),
+                 2px 2px 4px rgba(0, 0, 0, 0.8);
+    opacity: 0;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    max-width: 40%;
+    line-height: 1.2;
+    letter-spacing: 3px;
+    white-space: nowrap;
+}
+
+/* Mobile responsive text overlays */
+@media (max-width: 768px) {
+    .frame-text {
+        font-size: clamp(1.5rem, 6vw, 2.5rem);
+        max-width: 45%;
+        letter-spacing: 2px;
+    }
+}
+
+@media (max-width: 480px) {
+    .frame-text {
+        font-size: clamp(1.2rem, 7vw, 2rem);
+        max-width: 50%;
+        letter-spacing: 1px;
+        white-space: normal;
+        word-wrap: break-word;
+    }
+}
+
+
+/* ===================================
+   SCROLL SNAP FOR SECTIONS
+   =================================== */
+/* Only snap the hero section, not other content */
+.animation-hero-section {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+}
