@@ -348,8 +348,8 @@ class FrameAnimationSystem {
     // Text overlay elements
     this.textOverlays = [];
     
-    // Create text overlays if snap scroll is enabled
-    if (this.snapScroll.enabled) {
+    // Create text overlays if texts are configured
+    if (this.snapScroll.texts && this.snapScroll.texts.length > 0) {
       this._createTextOverlays();
     }
     
@@ -1213,6 +1213,14 @@ async function registerServiceWorker() {
  * Main initialization function
  */
 async function initializeApp() {
+  
+  // Force scroll to top on page load/refresh
+  window.scrollTo(0, 0);
+  
+  // Also use history API to prevent browser from restoring scroll position
+  if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+  }
   
   // Register service worker first
   registerServiceWorker();

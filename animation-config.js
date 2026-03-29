@@ -42,7 +42,7 @@ const ANIMATION_CONFIG = {
     // - mobilePosition: 'top', 'center', 'bottom' (optional, overrides position on mobile)
     // - showAtProgress: 0-1 value indicating when to show (0 = start, 1 = end)
     texts: [
-      { content: 'HERMANOS BARBER', side: 'left', position: 'top', showAtProgress: 0.1 },
+      { content: 'COUPES PREMIUM', side: 'left', position: 'top', showAtProgress: 0 },
       { content: 'STYLE & TRADITION', side: 'left', position: 'bottom', showAtProgress: 0.5 },
       { content: 'RÉSERVEZ MAINTENANT', side: 'center', position: 'bottom', showAtProgress: 0.85 }
     ]
