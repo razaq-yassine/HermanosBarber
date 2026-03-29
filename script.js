@@ -979,6 +979,28 @@ class FrameAnimationSystem {
         }
       }
       
+      // Check if enough frames are loaded for smooth animation
+      const framesLoaded = this.preloader.loadedFrames.size;
+      const totalFrames = this.preloader.frameCount;
+      const loadProgress = (framesLoaded / totalFrames) * 100;
+      
+      // If less than 50% frames loaded, skip animation and jump to target
+      if (loadProgress < 50) {
+        console.log(`⚡ Fast transition: Only ${Math.round(loadProgress)}% frames loaded`);
+        this.updateFrame(targetFrame);
+        isAnimating = false;
+        
+        // Check if we've reached the last frame
+        if (currentStepIndex === frameStops.length - 1) {
+          hasReachedLastFrame = true;
+          scrollCountAtLastFrame = 0;
+        } else {
+          hasReachedLastFrame = false;
+          scrollCountAtLastFrame = 0;
+        }
+        return;
+      }
+      
       const animateNextFrame = () => {
         if (frameIndex >= framesToAnimate) {
           isAnimating = false;
@@ -996,7 +1018,12 @@ class FrameAnimationSystem {
         }
         
         currentAnimFrame += direction;
-        this.updateFrame(currentAnimFrame);
+        
+        // Only update if frame is loaded, otherwise skip to next
+        if (this.preloader.frameCache.has(currentAnimFrame)) {
+          this.updateFrame(currentAnimFrame);
+        }
+        
         frameIndex++;
         
         // Continue animation (adjust speed here: lower = faster)
