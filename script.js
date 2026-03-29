@@ -220,39 +220,37 @@ class FramePreloader {
   }
   
   /**
-   * Load remaining frames with progressive strategy and memory management
-   * PROGRESSIVE LOADING PHASES:
-   * - Phase 3: Frames 11-124 (first scroll section - skip 125, already loaded)
-   * - Phase 4: Frames 126-249 (middle section - skip 250, already loaded)
+   * Load remaining frames with sequential strategy for smooth animations
+   * MOBILE-OPTIMIZED SEQUENTIAL LOADING:
+   * - Phase 3: Frames 11-125 (first transition path - load sequentially)
+   * - Phase 4: Frames 126-250 (second transition path - load sequentially)
    * 
-   * MEMORY MANAGEMENT:
-   * - Keeps only nearby frames in memory (±30 frames from current position)
-   * - Unloads distant frames to prevent mobile memory issues
+   * This ensures smooth frame-by-frame animation between snap points
    * 
    * @param {number} maxConcurrent - Maximum number of concurrent frame loads (default: 8)
    */
   loadRemainingFrames(maxConcurrent = 8) {
-    console.log(`🎬 Starting progressive background loading...`);
+    console.log(`🎬 Starting sequential background loading for smooth animations...`);
     
-    // Phase 3: Load frames 11-124 (first scroll section, skip snap frames)
+    // Phase 3: Load frames 11-125 sequentially (first transition: frame 1 → 125)
     const phase3Frames = [];
-    for (let i = this.priorityFrames + 1; i <= 124; i++) {
-      if (![1, 125, 250].includes(i)) { // Skip snap frames
+    for (let i = this.priorityFrames + 1; i <= 125; i++) {
+      if (![1, 125, 250].includes(i)) { // Skip already loaded snap frames
         phase3Frames.push(i);
       }
     }
     
-    // Phase 4: Load frames 126-249 (middle section, skip snap frames)
+    // Phase 4: Load frames 126-250 sequentially (second transition: frame 125 → 250)
     const phase4Frames = [];
-    for (let i = 126; i <= 249; i++) {
-      if (![1, 125, 250].includes(i)) { // Skip snap frames
+    for (let i = 126; i <= 250; i++) {
+      if (![1, 125, 250].includes(i)) { // Skip already loaded snap frames
         phase4Frames.push(i);
       }
     }
     
-    // Start Phase 3 immediately
+    // Start Phase 3 immediately with higher concurrency for faster loading
     this._loadPhase(3, phase3Frames, maxConcurrent, () => {
-      console.log(`✅ Phase 3 complete: First scroll section (frames 11-124) loaded`);
+      console.log(`✅ Phase 3 complete: First transition path (frames 11-125) loaded`);
       
       // Start Phase 4 after Phase 3
       this._loadPhase(4, phase4Frames, maxConcurrent, () => {
@@ -1375,11 +1373,30 @@ async function initializeFrameAnimation() {
     
     console.log('✓ FrameAnimationSystem initialized successfully');
     
+    // Track loading state for smooth animations
+    let firstTransitionReady = false;
+    
+    // Listen for Phase 3 completion (frames 11-125 loaded)
+    framePreloader.on("progress", (progress) => {
+      // Check if frames 11-125 are loaded (first transition path)
+      let firstPathLoaded = true;
+      for (let i = 11; i <= 125; i++) {
+        if (!framePreloader.loadedFrames.has(i)) {
+          firstPathLoaded = false;
+          break;
+        }
+      }
+      
+      if (firstPathLoaded && !firstTransitionReady) {
+        firstTransitionReady = true;
+        console.log('✅ First transition path ready - smooth animations enabled');
+      }
+    });
+    
     // Start progressive background loading immediately
-    // Phase 2: Frames 11-125 (first scroll section)
-    // Phase 3: Frame 250 (last snap point)
-    // Phase 4: Frames 126-249 (middle section)
-    framePreloader.loadRemainingFrames(8); // Increased concurrency for faster loading
+    // Phase 3: Frames 11-125 (first transition: 1 → 125)
+    // Phase 4: Frames 126-250 (second transition: 125 → 250)
+    framePreloader.loadRemainingFrames(12); // Higher concurrency for faster first transition
     
     // Store reference globally for debugging
     window.frameAnimationSystem = frameAnimationSystem;
