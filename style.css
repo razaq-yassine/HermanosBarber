@@ -568,6 +568,7 @@ h1, h2, h3 {
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
+    opacity: 1; /* Ensure cards are visible by default */
 }
 
 .service-card::before {

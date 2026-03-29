@@ -129,25 +129,94 @@ class FramePreloader {
   }
   
   /**
-   * Load priority frames (frames 1-10) sequentially
-   * PROGRESSIVE LOADING STRATEGY:
-   * - Phase 1: Frames 1-10 (show page immediately)
-   * - Phase 2: Frames 11-125 (first scroll section)
-   * - Phase 3: Frame 250 (last snap point)
-   * - Phase 4: Frames 126-249 (middle section)
+   * Load priority frames with snap-point priority
+   * MOBILE-OPTIMIZED LOADING STRATEGY:
+   * - Phase 1: Snap frames (1, 125, 250) - CRITICAL for instant interactivity
+   * - Phase 2: Priority frames (2-10) - Show page quickly
+   * - Phase 3: Remaining frames in sections
    * 
    * @async
-   * @returns {Promise<void>} Resolves when all priority frames are loaded
-   * @throws {Error} If priority frame loading fails
+   * @returns {Promise<void>} Resolves when snap point frames are loaded
+   * @throws {Error} If snap point frame loading fails
    */
   async loadPriorityFrames() {
-    const priorityCount = Math.min(this.priorityFrames, this.frameCount);
+    // Phase 1: Load snap point frames FIRST (critical for mobile)
+    const snapFrames = [1, 125, 250];
+    console.log(`🎬 Phase 1: Loading snap point frames (1, 125, 250)...`);
     
-    console.log(`🎬 Phase 1: Loading priority frames 1-${priorityCount}...`);
-    
-    for (let i = 1; i <= priorityCount; i++) {
+    for (const frameIndex of snapFrames) {
       try {
-        const img = new Image();
+        await this._loadSingleFrame(frameIndex);
+      } catch (error) {
+        console.error(`Failed to load snap frame ${frameIndex}:`, error);
+        this.emit("error", { frameIndex, error: error.message });
+        throw error; // Critical frames must load
+      }
+    }
+    
+    console.log(`✅ Phase 1 complete: Snap point frames loaded (${snapFrames.length} frames)`);
+    
+    // Phase 2: Load remaining priority frames (2-10, excluding 1 which is already loaded)
+    const priorityCount = Math.min(this.priorityFrames, this.frameCount);
+    console.log(`🎬 Phase 2: Loading priority frames 2-${priorityCount}...`);
+    
+    for (let i = 2; i <= priorityCount; i++) {
+      if (snapFrames.includes(i)) continue; // Skip already loaded snap frames
+      
+      try {
+        await this._loadSingleFrame(i);
+      } catch (error) {
+        console.error(`Error loading priority frame ${i}:`, error);
+        this.emit("error", { frameIndex: i, error: error.message });
+        // Don't throw - non-critical frames can fail
+      }
+    }
+    
+    console.log(`✅ Phase 2 complete: Priority frames 2-${priorityCount} loaded`);
+  }
+  
+  /**
+   * Load a single frame with retry logic
+   * 
+   * @private
+   * @async
+   * @param {number} frameIndex - Frame index to load
+   * @returns {Promise<Image>} Loaded and decoded image
+   * @throws {Error} If frame loading fails after retries
+   */
+  async _loadSingleFrame(frameIndex) {
+    const img = new Image();
+    const framePath = this.getFramePath(frameIndex);
+    
+    // Create promise that resolves when image loads and decodes
+    await new Promise((resolve, reject) => {
+      img.onload = async () => {
+        try {
+          // Use img.decode() to ensure frame is fully decoded and ready
+          await img.decode();
+          
+          // Cache the loaded frame
+          this.frameCache.set(frameIndex, img);
+          this.loadedFrames.add(frameIndex);
+          
+          // Emit progress event
+          this.emit("progress", this.getLoadProgress());
+          
+          resolve(img);
+        } catch (decodeError) {
+          reject(new Error(`Failed to decode frame ${frameIndex}: ${decodeError.message}`));
+        }
+      };
+      
+      img.onerror = () => {
+        reject(new Error(`Failed to load frame ${frameIndex} from ${framePath}`));
+      };
+      
+      // Start loading the image
+      img.src = framePath;
+    });
+    
+    return img;
         const framePath = this.getFramePath(i);
         
         // Create promise that resolves when image loads and decodes
@@ -189,46 +258,82 @@ class FramePreloader {
   }
   
   /**
-   * Load remaining frames with progressive strategy
+   * Load remaining frames with progressive strategy and memory management
    * PROGRESSIVE LOADING PHASES:
-   * - Phase 2: Frames 11-125 (first scroll section - high priority)
-   * - Phase 3: Frame 250 (last snap point - high priority)
-   * - Phase 4: Frames 126-249 (middle section - lower priority)
+   * - Phase 3: Frames 11-124 (first scroll section - skip 125, already loaded)
+   * - Phase 4: Frames 126-249 (middle section - skip 250, already loaded)
+   * 
+   * MEMORY MANAGEMENT:
+   * - Keeps only nearby frames in memory (±30 frames from current position)
+   * - Unloads distant frames to prevent mobile memory issues
    * 
    * @param {number} maxConcurrent - Maximum number of concurrent frame loads (default: 8)
    */
   loadRemainingFrames(maxConcurrent = 8) {
     console.log(`🎬 Starting progressive background loading...`);
     
-    // Phase 2: Load frames 11-125 (first scroll section)
-    const phase2Frames = [];
-    for (let i = this.priorityFrames + 1; i <= 125; i++) {
-      phase2Frames.push(i);
+    // Phase 3: Load frames 11-124 (first scroll section, skip snap frames)
+    const phase3Frames = [];
+    for (let i = this.priorityFrames + 1; i <= 124; i++) {
+      if (![1, 125, 250].includes(i)) { // Skip snap frames
+        phase3Frames.push(i);
+      }
     }
     
-    // Phase 3: Load frame 250 (last snap point)
-    const phase3Frames = [250];
-    
-    // Phase 4: Load frames 126-249 (middle section)
+    // Phase 4: Load frames 126-249 (middle section, skip snap frames)
     const phase4Frames = [];
     for (let i = 126; i <= 249; i++) {
-      phase4Frames.push(i);
+      if (![1, 125, 250].includes(i)) { // Skip snap frames
+        phase4Frames.push(i);
+      }
     }
     
-    // Start Phase 2 immediately
-    this._loadPhase(2, phase2Frames, maxConcurrent, () => {
-      console.log(`✅ Phase 2 complete: First scroll section (frames 11-125) loaded`);
+    // Start Phase 3 immediately
+    this._loadPhase(3, phase3Frames, maxConcurrent, () => {
+      console.log(`✅ Phase 3 complete: First scroll section (frames 11-124) loaded`);
       
-      // Start Phase 3 after Phase 2
-      this._loadPhase(3, phase3Frames, 1, () => {
-        console.log(`✅ Phase 3 complete: Last snap point (frame 250) loaded`);
-        
-        // Start Phase 4 after Phase 3
-        this._loadPhase(4, phase4Frames, maxConcurrent, () => {
-          console.log(`✅ Phase 4 complete: All frames loaded!`);
-        });
+      // Start Phase 4 after Phase 3
+      this._loadPhase(4, phase4Frames, maxConcurrent, () => {
+        console.log(`✅ Phase 4 complete: All frames loaded!`);
       });
     });
+  }
+  
+  /**
+   * Unload frames that are far from current position (memory management)
+   * Keeps only frames within ±30 of current frame
+   * 
+   * @param {number} currentFrame - Current frame being displayed
+   * @param {number} keepRange - Number of frames to keep on each side (default: 30)
+   */
+  unloadDistantFrames(currentFrame, keepRange = 30) {
+    const framesToKeep = new Set();
+    
+    // Always keep snap frames
+    framesToKeep.add(1);
+    framesToKeep.add(125);
+    framesToKeep.add(250);
+    
+    // Keep frames near current position
+    for (let i = Math.max(1, currentFrame - keepRange); i <= Math.min(this.frameCount, currentFrame + keepRange); i++) {
+      framesToKeep.add(i);
+    }
+    
+    // Unload frames not in keep set
+    let unloadedCount = 0;
+    for (const [frameIndex, img] of this.frameCache.entries()) {
+      if (!framesToKeep.has(frameIndex)) {
+        // Clear image src to free memory
+        img.src = '';
+        this.frameCache.delete(frameIndex);
+        this.loadedFrames.delete(frameIndex);
+        unloadedCount++;
+      }
+    }
+    
+    if (unloadedCount > 0) {
+      console.log(`🗑️ Memory management: Unloaded ${unloadedCount} distant frames (keeping ${framesToKeep.size} frames)`);
+    }
   }
   
   /**
@@ -772,6 +877,14 @@ class FrameAnimationSystem {
       // Update current frame tracking
       this.currentFrame = frameIndex;
       this.lastFrameIndex = frameIndex;
+      
+      // Memory management: Unload distant frames on mobile
+      if (this.preloader._isMobileDevice()) {
+        // Throttle memory management (only every 10 frames)
+        if (frameIndex % 10 === 0) {
+          this.preloader.unloadDistantFrames(frameIndex, 30);
+        }
+      }
     });
   }
   
@@ -1383,31 +1496,8 @@ function setupNavigation() {
  * Preserve animation patterns from original HermanosBarber/script.js
  */
 function initializeContentSections() {
-  // Pinned video sections
-  document.querySelectorAll('.video-section .video-container.pinned').forEach((container) => {
-    ScrollTrigger.create({
-      trigger: container,
-      start: 'top top',
-      end: '+=100%',
-      pin: true,
-      pinSpacing: true,
-      scrub: 1
-    });
-
-    gsap.from(container.querySelector('.video-title'), {
-      scrollTrigger: {
-        trigger: container,
-        start: 'top center',
-        end: 'center center',
-        scrub: 1
-      },
-      scale: 0.5,
-      opacity: 0
-    });
-  });
-
-  // Video overlay animations
-  document.querySelectorAll('.video-section:not(:has(.pinned)) .video-overlay').forEach((overlay) => {
+  // Video overlay animations (removed pinning for smoother scroll)
+  document.querySelectorAll('.video-section .video-overlay').forEach((overlay) => {
     gsap.from(overlay.children, {
       scrollTrigger: {
         trigger: overlay,
@@ -1499,19 +1589,22 @@ function initializeContentSections() {
     });
   }
 
-  // Services cards animation
-  gsap.from('.service-card', {
-    scrollTrigger: {
-      trigger: '.services-section',
-      start: 'top 70%',
-      end: 'top 30%',
-      scrub: 1
-    },
-    y: 100,
-    opacity: 0,
-    stagger: 0.2,
-    rotation: -5
-  });
+  // Services cards animation - TEMPORARILY DISABLED FOR DEBUGGING
+  // const serviceCards = document.querySelectorAll('.service-card');
+  // if (serviceCards.length > 0) {
+  //   gsap.from('.service-card', {
+  //     scrollTrigger: {
+  //       trigger: '.services-section',
+  //       start: 'top 70%',
+  //       end: 'top 30%',
+  //       scrub: 1
+  //     },
+  //     y: 100,
+  //     opacity: 0,
+  //     stagger: 0.2,
+  //     rotation: -5
+  //   });
+  // }
 
   // Services section title
   gsap.from('.services-section .section-title', {
