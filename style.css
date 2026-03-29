@@ -200,14 +200,25 @@ h1, h2, h3 {
 }
 
 /* ===================================
-   ANIMATION HERO SECTION - 100vh Height
+   FIXED ANIMATION BACKGROUND
    =================================== */
-.animation-hero-section {
-    position: relative;
+.animation-background-fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100vh;
     overflow: hidden;
     background: var(--black);
+    z-index: -1;
+}
+
+/* Animation scroll spacer - creates scroll distance for all frames */
+.animation-scroll-spacer {
+    height: 250vh; /* 250 frames * 1vh per frame = tall enough to play all frames */
+    width: 100%;
+    position: relative;
+    pointer-events: none;
 }
 
 .animation-container {
@@ -231,72 +242,6 @@ h1, h2, h3 {
     backface-visibility: hidden;
 }
 
-/* Scroll Indicator Styling */
-.scroll-indicator {
-    position: absolute;
-    bottom: 3rem;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.scroll-indicator:hover {
-    transform: translateX(-50%) translateY(-5px);
-}
-
-.scroll-indicator:focus {
-    outline: 2px solid var(--yellow);
-    outline-offset: 8px;
-}
-
-.scroll-arrow {
-    width: 30px;
-    height: 50px;
-    border: 2px solid var(--yellow);
-    border-radius: 25px;
-    position: relative;
-    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
-}
-
-.scroll-arrow::before {
-    content: '';
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 6px;
-    height: 6px;
-    background: var(--yellow);
-    border-radius: 50%;
-    animation: scrollDown 2s infinite;
-    box-shadow: 0 0 10px var(--yellow-glow);
-}
-
-@keyframes scrollDown {
-    0% { 
-        top: 10px; 
-        opacity: 1; 
-    }
-    100% { 
-        top: 30px; 
-        opacity: 0; 
-    }
-}
-
-.scroll-text {
-    color: var(--yellow);
-    font-size: 0.9rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-}
-
 /* ===================================
    SECTION BASE STYLES
    =================================== */
@@ -307,6 +252,25 @@ h1, h2, h3 {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* First sections overlay on animation background */
+main#main-content {
+    position: relative;
+    z-index: 1;
+}
+
+/* Make first video section transparent to show animation */
+.video-section:first-child {
+    background: transparent;
+}
+
+.video-section:first-child .video-container {
+    background: transparent;
+}
+
+.video-section:first-child .video-bg {
+    opacity: 0;
 }
 
 /* ===================================
@@ -816,18 +780,9 @@ h1, h2, h3 {
         display: none;
     }
     
-    /* Animation Hero - Adjust for mobile */
-    .animation-hero-section {
+    /* Fixed animation background */
+    .animation-background-fixed {
         height: 100vh;
-    }
-    
-    .scroll-indicator {
-        bottom: 2rem;
-    }
-    
-    .scroll-arrow {
-        width: 25px;
-        height: 40px;
     }
     
     /* Video sections */
@@ -968,46 +923,96 @@ h1, h2, h3 {
 
 .frame-text {
     position: absolute;
-    top: 50%;
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(2rem, 5vw, 4rem);
+    font-size: clamp(2.5rem, 6vw, 5rem);
     color: var(--yellow);
     text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 
                  0 0 40px rgba(255, 215, 0, 0.4),
                  2px 2px 4px rgba(0, 0, 0, 0.8);
     opacity: 0;
-    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    max-width: 40%;
+    transform: translateY(50px);
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    max-width: 90%;
     line-height: 1.2;
-    letter-spacing: 3px;
-    white-space: nowrap;
+    letter-spacing: 4px;
+    padding: 0 5%;
+}
+
+.frame-text.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Position variations */
+.frame-text[data-position="top"] {
+    top: 15%;
+}
+
+.frame-text[data-position="center"] {
+    top: 50%;
+    transform: translateY(-50%) translateY(50px);
+}
+
+.frame-text[data-position="center"].active {
+    transform: translateY(-50%);
+}
+
+.frame-text[data-position="bottom"] {
+    bottom: 15%;
+    top: auto;
+}
+
+/* Side variations */
+.frame-text[data-side="left"] {
+    left: 5%;
+    text-align: left;
+}
+
+.frame-text[data-side="right"] {
+    right: 5%;
+    left: auto;
+    text-align: right;
+}
+
+.frame-text[data-side="center"] {
+    left: 50%;
+    transform: translateX(-50%) translateY(50px);
+    text-align: center;
+}
+
+.frame-text[data-side="center"].active {
+    transform: translateX(-50%) translateY(0);
+}
+
+.frame-text[data-side="center"][data-position="center"] {
+    transform: translateX(-50%) translateY(-50%) translateY(50px);
+}
+
+.frame-text[data-side="center"][data-position="center"].active {
+    transform: translateX(-50%) translateY(-50%);
 }
 
 /* Mobile responsive text overlays */
 @media (max-width: 768px) {
     .frame-text {
-        font-size: clamp(1.5rem, 6vw, 2.5rem);
-        max-width: 45%;
+        font-size: clamp(1.8rem, 7vw, 3rem);
         letter-spacing: 2px;
+        max-width: 85%;
+    }
+    
+    .frame-text[data-position="top"] {
+        top: 10%;
+    }
+    
+    .frame-text[data-position="bottom"] {
+        bottom: 10%;
     }
 }
 
 @media (max-width: 480px) {
     .frame-text {
-        font-size: clamp(1.2rem, 7vw, 2rem);
-        max-width: 50%;
+        font-size: clamp(1.5rem, 8vw, 2.5rem);
         letter-spacing: 1px;
-        white-space: normal;
-        word-wrap: break-word;
+        max-width: 80%;
     }
-}
-
-
-/* ===================================
-   SCROLL SNAP FOR SECTIONS
-   =================================== */
-/* Only snap the hero section, not other content */
-.animation-hero-section {
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
 }

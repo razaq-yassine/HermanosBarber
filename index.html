@@ -35,8 +35,8 @@
         <p class="loading-text">Chargement...</p>
     </div>
 
-    <!-- Animation Hero Section -->
-    <section id="animation-hero" class="animation-hero-section" role="banner" aria-label="Animation de défilement">
+    <!-- Fixed Animation Background -->
+    <div id="animation-background" class="animation-background-fixed" role="banner" aria-label="Animation de défilement">
         <div class="animation-container">
             <img 
                 id="animation-frame" 
@@ -56,11 +56,10 @@
                 })();
             </script>
         </div>
-        <div class="scroll-indicator" role="button" tabindex="0" aria-label="Faire défiler vers le bas">
-            <div class="scroll-arrow"></div>
-            <span class="scroll-text">Défiler</span>
-        </div>
-    </section>
+    </div>
+
+    <!-- Animation Scroll Spacer - extends height to play all frames -->
+    <div class="animation-scroll-spacer"></div>
 
     <!-- Main Content -->
     <main id="main-content">

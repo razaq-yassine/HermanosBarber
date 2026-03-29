@@ -50,7 +50,6 @@ class FramePreloader {
     if (this.eventListeners.has(event)) {
       this.eventListeners.get(event).add(callback);
     } else {
-      console.warn(`Unknown event type: ${event}`);
     }
   }
   
@@ -78,7 +77,6 @@ class FramePreloader {
         try {
           callback(data);
         } catch (error) {
-          console.error(`Error in ${event} event listener:`, error);
         }
       });
     }
@@ -123,56 +121,32 @@ class FramePreloader {
     // Device is mobile if any of these conditions are true
     this._isMobile = isMobileWidth || (isMobileUA && hasTouch);
     
-    console.log(`Device detection: ${this._isMobile ? 'Mobile' : 'Desktop'} (width: ${window.innerWidth}px)`);
     
     return this._isMobile;
   }
   
   /**
-   * Load priority frames with snap-point priority
-   * MOBILE-OPTIMIZED LOADING STRATEGY:
-   * - Phase 1: Snap frames (1, 125, 250) - CRITICAL for instant interactivity
-   * - Phase 2: Priority frames (2-10) - Show page quickly
-   * - Phase 3: Remaining frames in sections
+   * Load all frames sequentially
+   * Simple approach: load all 250 frames before showing page
    * 
    * @async
-   * @returns {Promise<void>} Resolves when snap point frames are loaded
-   * @throws {Error} If snap point frame loading fails
+   * @returns {Promise<void>} Resolves when all frames are loaded
+   * @throws {Error} If frame loading fails
    */
-  async loadPriorityFrames() {
-    // Phase 1: Load snap point frames FIRST (critical for mobile)
-    const snapFrames = [1, 125, 250];
-    console.log(`🎬 Phase 1: Loading snap point frames (1, 125, 250)...`);
-    
-    for (const frameIndex of snapFrames) {
-      try {
-        await this._loadSingleFrame(frameIndex);
-      } catch (error) {
-        console.error(`Failed to load snap frame ${frameIndex}:`, error);
-        this.emit("error", { frameIndex, error: error.message });
-        throw error; // Critical frames must load
-      }
-    }
-    
-    console.log(`✅ Phase 1 complete: Snap point frames loaded (${snapFrames.length} frames)`);
-    
-    // Phase 2: Load remaining priority frames (2-10, excluding 1 which is already loaded)
-    const priorityCount = Math.min(this.priorityFrames, this.frameCount);
-    console.log(`🎬 Phase 2: Loading priority frames 2-${priorityCount}...`);
-    
-    for (let i = 2; i <= priorityCount; i++) {
-      if (snapFrames.includes(i)) continue; // Skip already loaded snap frames
-      
+  async loadAllFrames() {
+    for (let i = 1; i <= this.frameCount; i++) {
       try {
         await this._loadSingleFrame(i);
       } catch (error) {
-        console.error(`Error loading priority frame ${i}:`, error);
         this.emit("error", { frameIndex: i, error: error.message });
-        // Don't throw - non-critical frames can fail
+        throw error;
       }
     }
     
-    console.log(`✅ Phase 2 complete: Priority frames 2-${priorityCount} loaded`);
+    this.emit("frames-ready", { 
+      totalFrames: this.frameCount,
+      loadProgress: this.getLoadProgress()
+    });
   }
   
   /**
@@ -229,223 +203,13 @@ class FramePreloader {
    * 
    * @param {number} maxConcurrent - Maximum number of concurrent frame loads (default: 8)
    */
-  loadRemainingFrames(maxConcurrent = 8) {
-    console.log(`🎬 Starting sequential background loading for smooth animations...`);
-    
-    // Phase 3: Load frames 11-125 sequentially (first transition: frame 1 → 125)
-    const phase3Frames = [];
-    for (let i = this.priorityFrames + 1; i <= 125; i++) {
-      if (![1, 125, 250].includes(i)) { // Skip already loaded snap frames
-        phase3Frames.push(i);
-      }
-    }
-    
-    // Phase 4: Load frames 126-250 sequentially (second transition: frame 125 → 250)
-    const phase4Frames = [];
-    for (let i = 126; i <= 250; i++) {
-      if (![1, 125, 250].includes(i)) { // Skip already loaded snap frames
-        phase4Frames.push(i);
-      }
-    }
-    
-    // Start Phase 3 immediately with higher concurrency for faster loading
-    this._loadPhase(3, phase3Frames, maxConcurrent, () => {
-      console.log(`✅ Phase 3 complete: First transition path (frames 11-125) loaded`);
-      
-      // Start Phase 4 after Phase 3
-      this._loadPhase(4, phase4Frames, maxConcurrent, () => {
-        console.log(`✅ Phase 4 complete: All frames loaded!`);
-      });
-    });
-  }
   
   /**
-   * Unload frames that are far from current position (memory management)
-   * Keeps only frames within ±30 of current frame
-   * 
-   * @param {number} currentFrame - Current frame being displayed
-   * @param {number} keepRange - Number of frames to keep on each side (default: 30)
+   * Unload frames - disabled in simple mode
    */
   unloadDistantFrames(currentFrame, keepRange = 30) {
-    const framesToKeep = new Set();
-    
-    // Always keep snap frames
-    framesToKeep.add(1);
-    framesToKeep.add(125);
-    framesToKeep.add(250);
-    
-    // Keep frames near current position
-    for (let i = Math.max(1, currentFrame - keepRange); i <= Math.min(this.frameCount, currentFrame + keepRange); i++) {
-      framesToKeep.add(i);
-    }
-    
-    // Unload frames not in keep set
-    let unloadedCount = 0;
-    for (const [frameIndex, img] of this.frameCache.entries()) {
-      if (!framesToKeep.has(frameIndex)) {
-        // Clear image src to free memory
-        img.src = '';
-        this.frameCache.delete(frameIndex);
-        this.loadedFrames.delete(frameIndex);
-        unloadedCount++;
-      }
-    }
-    
-    if (unloadedCount > 0) {
-      console.log(`🗑️ Memory management: Unloaded ${unloadedCount} distant frames (keeping ${framesToKeep.size} frames)`);
-    }
-  }
-  
-  /**
-   * Load a specific phase of frames
-   * 
-   * @private
-   * @param {number} phaseNumber - Phase number for logging
-   * @param {number[]} frameIndices - Array of frame indices to load
-   * @param {number} maxConcurrent - Maximum number of concurrent loads
-   * @param {Function} onComplete - Callback when phase completes
-   */
-  _loadPhase(phaseNumber, frameIndices, maxConcurrent, onComplete) {
-    if (frameIndices.length === 0) {
-      if (onComplete) onComplete();
-      return;
-    }
-    
-    console.log(`🎬 Phase ${phaseNumber}: Loading ${frameIndices.length} frames with max ${maxConcurrent} concurrent requests`);
-    
-    // Load frames with concurrency control
-    this._loadFramesWithConcurrency(frameIndices, maxConcurrent, onComplete);
-  }
-  
-  /**
-   * Load frames with concurrency control
-   * Internal method that manages parallel loading with a maximum concurrent limit
-   * 
-   * @private
-   * @param {number[]} frameIndices - Array of frame indices to load
-   * @param {number} maxConcurrent - Maximum number of concurrent loads
-   * @param {Function} onComplete - Optional callback when all frames in this batch are loaded
-   */
-  async _loadFramesWithConcurrency(frameIndices, maxConcurrent, onComplete) {
-    let currentIndex = 0;
-    let activeLoads = 0;
-    let completedLoads = 0;
-    const totalFrames = frameIndices.length;
-    
-    // Function to load a single frame with retry logic
-    const loadSingleFrame = async (frameIndex) => {
-      activeLoads++;
-      
-      try {
-        await this._loadFrameWithRetry(frameIndex);
-        completedLoads++;
-        
-        // Emit progress event
-        this.emit("progress", this.getLoadProgress());
-        
-        // Check if this batch is complete
-        if (completedLoads === totalFrames) {
-          if (onComplete) onComplete();
-        }
-        
-        // Check if all frames are loaded
-        if (this.loadedFrames.size === this.frameCount) {
-          console.log('🎉 All 250 frames loaded successfully!');
-          this.emit("frames-ready", { 
-            totalFrames: this.frameCount,
-            loadProgress: this.getLoadProgress()
-          });
-        }
-        
-      } catch (error) {
-        console.error(`Failed to load frame ${frameIndex} after retries:`, error);
-        this.emit("error", { frameIndex, error: error.message });
-        completedLoads++;
-        
-        // Check if this batch is complete even with errors
-        if (completedLoads === totalFrames) {
-          if (onComplete) onComplete();
-        }
-      } finally {
-        activeLoads--;
-        
-        // Start next frame load if available
-        if (currentIndex < frameIndices.length) {
-          const nextFrameIndex = frameIndices[currentIndex];
-          currentIndex++;
-          loadSingleFrame(nextFrameIndex);
-        }
-      }
-    };
-    
-    // Start initial batch of concurrent loads
-    const initialBatchSize = Math.min(maxConcurrent, frameIndices.length);
-    for (let i = 0; i < initialBatchSize; i++) {
-      const frameIndex = frameIndices[currentIndex];
-      currentIndex++;
-      loadSingleFrame(frameIndex);
-    }
-  }
-  
-  /**
-   * Load a single frame with retry logic (up to 3 attempts)
-   * 
-   * @private
-   * @async
-   * @param {number} frameIndex - Frame index to load
-   * @param {number} maxRetries - Maximum number of retry attempts (default: 3)
-   * @returns {Promise<Image>} Loaded and decoded image
-   * @throws {Error} If all retry attempts fail
-   */
-  async _loadFrameWithRetry(frameIndex, maxRetries = 3) {
-    let retries = 0;
-    
-    while (retries < maxRetries) {
-      try {
-        const img = new Image();
-        const framePath = this.getFramePath(frameIndex);
-        
-        // Create promise that resolves when image loads and decodes
-        await new Promise((resolve, reject) => {
-          img.onload = async () => {
-            try {
-              // Use img.decode() to ensure frame is fully decoded and ready
-              await img.decode();
-              
-              // Cache the loaded frame
-              this.frameCache.set(frameIndex, img);
-              this.loadedFrames.add(frameIndex);
-              
-              resolve(img);
-            } catch (decodeError) {
-              reject(new Error(`Failed to decode frame ${frameIndex}: ${decodeError.message}`));
-            }
-          };
-          
-          img.onerror = () => {
-            reject(new Error(`Failed to load frame ${frameIndex} from ${framePath}`));
-          };
-          
-          // Start loading the image
-          img.src = framePath;
-        });
-        
-        // Success - return the loaded image
-        return img;
-        
-      } catch (error) {
-        retries++;
-        
-        if (retries < maxRetries) {
-          console.warn(`Failed to load frame ${frameIndex}, retry ${retries}/${maxRetries}:`, error.message);
-          // Wait 2 seconds before retrying
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        } else {
-          // All retries exhausted
-          throw new Error(`Failed to load frame ${frameIndex} after ${maxRetries} attempts: ${error.message}`);
-        }
-      }
-    }
+    // Disabled - keep all frames in memory
+    return;
   }
   
   /**
@@ -589,14 +353,6 @@ class FrameAnimationSystem {
       this._createTextOverlays();
     }
     
-    console.log('FrameAnimationSystem initialized:', {
-      frameCount: this.frameCount,
-      scrollDistance: this.scrollDistance,
-      container: this.container,
-      imageElement: this.imageElement,
-      snapScroll: this.snapScroll,
-      frameStops: this.frameStops
-    });
   }
   
   /**
@@ -636,15 +392,6 @@ class FrameAnimationSystem {
     // Create container for text overlays
     const textContainer = document.createElement('div');
     textContainer.className = 'frame-text-overlays';
-    textContainer.style.cssText = `
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 10;
-    `;
     this.container.appendChild(textContainer);
     
     // Create text elements for each scroll step
@@ -652,43 +399,18 @@ class FrameAnimationSystem {
       const textElement = document.createElement('div');
       textElement.className = `frame-text frame-text-${index}`;
       
-      // Determine side (left or right)
+      // Determine side (left, right, or center)
       const side = textConfig.side || (index % 2 === 0 ? 'left' : 'right');
       
       // Determine vertical position (top, center, bottom)
-      // Check if mobile and use mobilePosition if available
       const isMobile = window.innerWidth <= 768;
       const position = (isMobile && textConfig.mobilePosition) ? 
                        textConfig.mobilePosition : 
                        (textConfig.position || 'center');
       
-      let topValue, transformY;
-      
-      if (position === 'top') {
-        topValue = '10%';
-        transformY = '0';
-      } else if (position === 'bottom') {
-        topValue = '90%';
-        transformY = '-100%';
-      } else {
-        topValue = '50%';
-        transformY = '-50%';
-      }
-      
-      textElement.style.cssText = `
-        position: absolute;
-        top: ${topValue};
-        ${side}: 5%;
-        transform: translateY(${transformY}) translateX(${side === 'left' ? '-100%' : '100%'});
-        font-family: 'Bebas Neue', sans-serif;
-        font-size: clamp(2rem, 5vw, 4rem);
-        color: #FFD700;
-        text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
-        opacity: 0;
-        transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-        max-width: 40%;
-        line-height: 1.2;
-      `;
+      // Set data attributes for CSS styling
+      textElement.setAttribute('data-side', side);
+      textElement.setAttribute('data-position', position);
       
       textElement.textContent = textConfig.content || '';
       textContainer.appendChild(textElement);
@@ -714,19 +436,7 @@ class FrameAnimationSystem {
     }
     
     const overlay = this.textOverlays[stepIndex];
-    const position = overlay.position || 'center';
-    let transformY;
-    
-    if (position === 'top') {
-      transformY = '0';
-    } else if (position === 'bottom') {
-      transformY = '-100%';
-    } else {
-      transformY = '-50%';
-    }
-    
-    overlay.element.style.opacity = '1';
-    overlay.element.style.transform = `translateY(${transformY}) translateX(0)`;
+    overlay.element.classList.add('active');
   }
   
   /**
@@ -741,9 +451,7 @@ class FrameAnimationSystem {
     }
     
     const overlay = this.textOverlays[stepIndex];
-    const side = overlay.side;
-    overlay.element.style.opacity = '0';
-    overlay.element.style.transform = `translateY(-50%) translateX(${side === 'left' ? '-100%' : '100%'})`;
+    overlay.element.classList.remove('active');
   }
   
   /**
@@ -752,8 +460,8 @@ class FrameAnimationSystem {
    * @private
    */
   _hideAllTextOverlays() {
-    this.textOverlays.forEach((_, index) => {
-      this._hideTextOverlay(index);
+    this.textOverlays.forEach((overlay) => {
+      overlay.element.classList.remove('active');
     });
   }
   
@@ -811,14 +519,12 @@ class FrameAnimationSystem {
     
     // Get frame from preloader
     if (!this.preloader) {
-      console.warn('Preloader not initialized');
       return;
     }
     
     const frame = this.preloader.getFrame(frameIndex);
     
     if (!frame) {
-      console.warn(`Frame ${frameIndex} not available`);
       return;
     }
     
@@ -861,7 +567,6 @@ class FrameAnimationSystem {
     
     // Check if GSAP and ScrollTrigger are available
     if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
-      console.error('GSAP or ScrollTrigger not available');
       return false;
     }
     
@@ -885,18 +590,13 @@ class FrameAnimationSystem {
       this._showTextOverlay(0);
     }
     
-    console.log('FrameAnimationSystem initialized:', {
-      trigger: this.container,
-      discreteScroll: this.discreteScroll,
-      snapEnabled: this.snapScroll.enabled,
-      frameStops: this.frameStops
-    });
     
     return true;
   }
   
   /**
    * Initialize discrete scroll mode (one frame per scroll)
+   * Modified to work with fixed background - scrolls through page content
    * 
    * @private
    */
@@ -904,8 +604,6 @@ class FrameAnimationSystem {
     let scrollTimeout;
     let isScrolling = false;
     let isAnimating = false;
-    let hasReachedLastFrame = false; // Track if we've reached and completed animation to last frame
-    let scrollCountAtLastFrame = 0; // Track how many scrolls have occurred at the last frame
     
     // Use snap scroll frame stops if enabled, otherwise use all frames
     const frameStops = this.snapScroll.enabled ? this.frameStops : 
@@ -914,208 +612,67 @@ class FrameAnimationSystem {
     // Find current step index
     let currentStepIndex = 0;
     
-    // Create a wrapper for better scroll control
-    const scrollWrapper = document.createElement('div');
-    scrollWrapper.style.height = `${frameStops.length * 100}vh`;
-    scrollWrapper.style.position = 'relative';
+    // Track scroll progress through the animation
+    const animationScrollHeight = frameStops.length * 100; // 100vh per frame stop
     
-    // Pin the container with better snap configuration
-    const pinTrigger = ScrollTrigger.create({
-      trigger: this.container,
-      start: "top top",
-      end: `+=${frameStops.length * 100}vh`,
-      pin: true,
-      pinSpacing: true,
-      anticipatePin: 1,
-      snap: {
-        snapTo: (progress) => {
-          // Snap to either 0 (fully in view) or 1 (fully out of view)
-          return progress < 0.5 ? 0 : 1;
-        },
-        duration: { min: 0.2, max: 0.5 },
-        delay: 0.1,
-        ease: "power2.inOut"
-      },
-      onEnter: () => {
-        console.log('Entered hero section');
-        hasReachedLastFrame = false; // Reset when entering
-        scrollCountAtLastFrame = 0; // Reset scroll count when entering
-      },
-      onLeave: () => {
-        console.log('Left hero section');
-      },
-      onEnterBack: () => {
-        console.log('Entered back hero section');
-        // Reset to last frame when coming back
-        currentStepIndex = frameStops.length - 1;
-        hasReachedLastFrame = true;
-        scrollCountAtLastFrame = 0; // Reset scroll count when re-entering
-        this.updateFrame(frameStops[currentStepIndex]);
-      },
-      onLeaveBack: () => {
-        console.log('Left back hero section');
+    // Create ScrollTrigger to track scroll progress and update frames
+    const scrollTrigger = ScrollTrigger.create({
+      trigger: 'body',
+      start: 'top top',
+      end: `+=${animationScrollHeight}vh`,
+      onUpdate: (self) => {
+        // Calculate which frame to show based on scroll progress
+        const progress = self.progress;
+        const stepIndex = Math.round(progress * (frameStops.length - 1));
+        
+        if (stepIndex !== currentStepIndex) {
+          currentStepIndex = stepIndex;
+          const targetFrame = frameStops[currentStepIndex];
+          this.updateFrame(targetFrame);
+          
+          // Update text overlays
+          if (this.snapScroll.enabled && this.textOverlays.length > 0) {
+            this._hideAllTextOverlays();
+            if (currentStepIndex < this.textOverlays.length) {
+              this._showTextOverlay(currentStepIndex);
+            }
+          }
+        }
       }
     });
     
-    // Animate through frames from current to target
-    const animateToFrame = (targetFrame) => {
-      if (isAnimating) return;
-      
-      isAnimating = true;
-      const startFrame = this.currentFrame;
-      const direction = targetFrame > startFrame ? 1 : -1;
-      const framesToAnimate = Math.abs(targetFrame - startFrame);
-      
-      let currentAnimFrame = startFrame;
-      let frameIndex = 0;
-      
-      // Show text overlay at the START of animation (not at the end)
-      if (this.snapScroll.enabled && this.textOverlays.length > 0) {
-        this._hideAllTextOverlays();
-        if (currentStepIndex < this.textOverlays.length) {
-          this._showTextOverlay(currentStepIndex);
-        }
-      }
-      
-      const animateNextFrame = () => {
-        if (frameIndex >= framesToAnimate) {
-          isAnimating = false;
-          
-          // Check if we've reached the last frame
-          if (currentStepIndex === frameStops.length - 1) {
-            hasReachedLastFrame = true;
-            scrollCountAtLastFrame = 0; // Reset scroll count when first reaching last frame
-          } else {
-            hasReachedLastFrame = false;
-            scrollCountAtLastFrame = 0;
-          }
-          
-          return;
-        }
-        
-        currentAnimFrame += direction;
-        
-        // Always update frame - getFrame() has fallback logic for missing frames
-        this.updateFrame(currentAnimFrame);
-        
-        frameIndex++;
-        
-        // Continue animation (adjust speed here: lower = faster)
-        setTimeout(animateNextFrame, 16); // ~60fps
-      };
-      
-      animateNextFrame();
-    };
-    
-    // Handle wheel events for discrete scrolling
-    const handleWheel = (e) => {
-      // If scrolling up in hero section, ensure we're at the very top (0)
-      if (e.deltaY < 0) {
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        
-        // If not at the very top (position 0), snap to top first
-        if (scrollTop > 5) { // 5px tolerance
-          e.preventDefault();
-          window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-          });
-          return;
-        }
-        
-        // Check if we're at the first frame and scrolling up
-        if (currentStepIndex === 0) {
-          hasReachedLastFrame = false;
-          scrollCountAtLastFrame = 0;
-          // Allow natural scroll up
-          return;
-        }
-      }
-      
-      // If at last frame and scrolling down, count the scroll
-      if (e.deltaY > 0 && hasReachedLastFrame && currentStepIndex === frameStops.length - 1) {
-        scrollCountAtLastFrame++;
-        
-        // Only allow scroll to next section after the SECOND scroll at last frame
-        // First scroll at last frame: scrollCountAtLastFrame becomes 1 (stay in hero)
-        // Second scroll at last frame: scrollCountAtLastFrame becomes 2 (allow exit)
-        if (scrollCountAtLastFrame >= 2) {
-          // Allow natural scroll to next section (don't prevent default)
-          return;
-        }
-        
-        // First scroll at last frame - prevent default and stay in hero
-        e.preventDefault();
-        return;
-      }
-      
-      e.preventDefault();
-      
-      // Block new scrolls while animating or during scroll cooldown
-      if (isScrolling || isAnimating) {
-        return;
-      }
-      
-      isScrolling = true;
-      
-      // Determine scroll direction
-      const delta = e.deltaY;
-      
-      if (delta > 0) {
-        // Scrolling down - next frame stop
-        const nextStepIndex = Math.min(currentStepIndex + 1, frameStops.length - 1);
-        
-        // Only animate if we're actually moving to a new step
-        if (nextStepIndex !== currentStepIndex) {
-          currentStepIndex = nextStepIndex;
-          const targetFrame = frameStops[currentStepIndex];
-          animateToFrame(targetFrame);
-        } else {
-          // Already at last frame, reset flag immediately
-          isScrolling = false;
-        }
-      } else if (delta < 0) {
-        // Scrolling up - previous frame stop
-        hasReachedLastFrame = false; // Reset flag when scrolling up
-        scrollCountAtLastFrame = 0; // Reset scroll count when scrolling up
-        currentStepIndex = Math.max(currentStepIndex - 1, 0);
-        const targetFrame = frameStops[currentStepIndex];
-        animateToFrame(targetFrame);
-      }
-      
-      // Reset scrolling flag after animation completes + delay
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
-        isScrolling = false;
-      }, 300);
-    };
-    
-    // Add wheel event listener
-    this.container.addEventListener('wheel', handleWheel, { passive: false });
+    // Show first text overlay if snap scroll is enabled
+    if (this.snapScroll.enabled && this.textOverlays.length > 0) {
+      this._showTextOverlay(0);
+    }
     
     // Store reference for cleanup
-    this._wheelHandler = handleWheel;
-    this._pinTrigger = pinTrigger;
-    
-    console.log('Discrete scroll initialized with frame stops:', frameStops);
+    this._scrollTrigger = scrollTrigger;
   }
   
   /**
    * Initialize ScrollTrigger mode (smooth or snap scrolling)
+   * Modified to work with fixed background - tracks spacer element scroll
    * 
    * @private
    */
   _initScrollTrigger() {
-    // Adjust scroll distance based on viewport width
-    const scrollDistance = this.getResponsiveScrollDistance();
+    // Find the spacer element that controls the scroll distance
+    const spacer = document.querySelector('.animation-scroll-spacer');
+    if (!spacer) {
+      console.error('Animation scroll spacer not found');
+      return;
+    }
     
-    // Configure ScrollTrigger based on snap mode
+    // Track which text overlays are currently visible
+    const textVisibility = new Array(this.textOverlays.length).fill(false);
+    
+    // Configure ScrollTrigger to track spacer scroll and update frames
     const scrollTriggerConfig = {
-      trigger: this.container,
-      start: "top top",
-      end: `+=${scrollDistance}`,
-      pin: true,
-      scrub: this.snapScroll.enabled ? 0.5 : true,
+      trigger: spacer,
+      start: 'top top',
+      end: 'bottom top',
+      scrub: true, // Smooth scrubbing
       onUpdate: (self) => {
         // Calculate frame index from scroll progress
         const frameIndex = this.calculateFrameIndex(self.progress);
@@ -1123,36 +680,26 @@ class FrameAnimationSystem {
         // Update frame display
         this.updateFrame(frameIndex);
         
-        // Handle text overlays for snap scroll
-        if (this.snapScroll.enabled) {
-          const stepIndex = this.getScrollStepIndex(self.progress);
-          
-          if (stepIndex !== this.currentScrollStep) {
-            // Hide previous text
-            this._hideTextOverlay(this.currentScrollStep);
+        // Handle text overlays based on scroll progress (not snap points)
+        if (this.textOverlays.length > 0) {
+          this.textOverlays.forEach((overlay, index) => {
+            const textConfig = this.snapScroll.texts[index];
+            const showAtProgress = textConfig.showAtProgress || (index / Math.max(1, this.textOverlays.length - 1));
+            const hideAtProgress = showAtProgress + 0.2; // Show for 20% of scroll
             
-            // Show new text
-            this._showTextOverlay(stepIndex);
+            const shouldShow = self.progress >= showAtProgress && self.progress < hideAtProgress;
             
-            this.currentScrollStep = stepIndex;
-          }
+            if (shouldShow && !textVisibility[index]) {
+              this._showTextOverlay(index);
+              textVisibility[index] = true;
+            } else if (!shouldShow && textVisibility[index]) {
+              this._hideTextOverlay(index);
+              textVisibility[index] = false;
+            }
+          });
         }
       }
     };
-    
-    // Add snap configuration if enabled
-    if (this.snapScroll.enabled) {
-      // Create snap points based on frame stops
-      const snapPoints = this.frameStops.map((_, index) => {
-        return index / (this.frameStops.length - 1);
-      });
-      
-      scrollTriggerConfig.snap = {
-        snapTo: snapPoints,
-        duration: 0.5,
-        ease: "power2.inOut"
-      };
-    }
     
     // Set up ScrollTrigger
     this.scrollTrigger = ScrollTrigger.create(scrollTriggerConfig);
@@ -1188,7 +735,6 @@ class FrameAnimationSystem {
     // Refresh ScrollTrigger to recalculate positions
     ScrollTrigger.refresh();
     
-    console.log('ScrollTrigger refreshed with new scroll distance:', newScrollDistance);
   }
   
   /**
@@ -1200,21 +746,18 @@ class FrameAnimationSystem {
     if (this.scrollTrigger) {
       this.scrollTrigger.kill();
       this.scrollTrigger = null;
-      console.log('ScrollTrigger instance destroyed');
     }
     
     // Kill pin trigger for discrete scroll
     if (this._pinTrigger) {
       this._pinTrigger.kill();
       this._pinTrigger = null;
-      console.log('Pin trigger destroyed');
     }
     
     // Remove wheel event listener for discrete scroll
     if (this._wheelHandler) {
       this.container.removeEventListener('wheel', this._wheelHandler);
       this._wheelHandler = null;
-      console.log('Wheel event listener removed');
     }
     
     // Clear frame references
@@ -1227,7 +770,6 @@ class FrameAnimationSystem {
       this.imageElement.style.willChange = 'auto';
     }
     
-    console.log('FrameAnimationSystem destroyed');
   }
   
   /**
@@ -1259,7 +801,6 @@ function checkReducedMotion() {
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   
   if (prefersReducedMotion) {
-    console.log('Reduced motion preference detected - displaying static frame');
     displayStaticFrame();
     return true;
   }
@@ -1301,7 +842,6 @@ async function initializeFrameAnimation() {
   try {
     // Check for GSAP and ScrollTrigger availability
     if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
-      console.error('GSAP or ScrollTrigger not available - displaying fallback');
       displayStaticFrame();
       return false;
     }
@@ -1318,23 +858,18 @@ async function initializeFrameAnimation() {
     
     // Listen to progress events
     framePreloader.on('progress', (progress) => {
-      console.log(`Loading progress: ${progress.loaded}/${progress.total} (${progress.percentage}%)`);
     });
     
     // Listen to frames-ready event
     framePreloader.on('frames-ready', () => {
-      console.log('✓ All frames loaded successfully');
     });
     
     // Listen to error events
     framePreloader.on('error', (error) => {
-      console.error('Frame loading error:', error);
     });
     
-    // Load priority frames (1-10)
-    console.log('Loading priority frames...');
-    await framePreloader.loadPriorityFrames();
-    console.log('✓ Priority frames loaded');
+    // Load ALL frames before showing page
+    await framePreloader.loadAllFrames();
     
     // Hide loading indicator
     const loadingIndicator = document.querySelector('.loading-indicator');
@@ -1342,10 +877,9 @@ async function initializeFrameAnimation() {
       loadingIndicator.classList.add('hidden');
     }
     
-    // Initialize FrameAnimationSystem
-    const container = document.querySelector('.animation-hero-section');
+    // Initialize FrameAnimationSystem with fixed background
+    const container = document.querySelector('.animation-background-fixed');
     if (!container) {
-      console.error('Animation hero section container not found');
       return false;
     }
     
@@ -1354,9 +888,9 @@ async function initializeFrameAnimation() {
       scrollDistance: '300vh',
       container: container,
       frameBasePath: './assets/frames/',
-      // Enable discrete scroll mode (one frame per scroll)
+      // Disable discrete scroll mode for smooth scrolling
       discreteScroll: {
-        enabled: true
+        enabled: false
       },
       // Use configuration from animation-config.js
       snapScroll: ANIMATION_CONFIG.snapScroll
@@ -1366,37 +900,10 @@ async function initializeFrameAnimation() {
     const initSuccess = frameAnimationSystem.init(framePreloader);
     
     if (!initSuccess) {
-      console.error('Failed to initialize FrameAnimationSystem');
       displayStaticFrame();
       return false;
     }
     
-    console.log('✓ FrameAnimationSystem initialized successfully');
-    
-    // Track loading state for smooth animations
-    let firstTransitionReady = false;
-    
-    // Listen for Phase 3 completion (frames 11-125 loaded)
-    framePreloader.on("progress", (progress) => {
-      // Check if frames 11-125 are loaded (first transition path)
-      let firstPathLoaded = true;
-      for (let i = 11; i <= 125; i++) {
-        if (!framePreloader.loadedFrames.has(i)) {
-          firstPathLoaded = false;
-          break;
-        }
-      }
-      
-      if (firstPathLoaded && !firstTransitionReady) {
-        firstTransitionReady = true;
-        console.log('✅ First transition path ready - smooth animations enabled');
-      }
-    });
-    
-    // Start progressive background loading immediately
-    // Phase 3: Frames 11-125 (first transition: 1 → 125)
-    // Phase 4: Frames 126-250 (second transition: 125 → 250)
-    framePreloader.loadRemainingFrames(12); // Higher concurrency for faster first transition
     
     // Store reference globally for debugging
     window.frameAnimationSystem = frameAnimationSystem;
@@ -1405,7 +912,6 @@ async function initializeFrameAnimation() {
     return true;
     
   } catch (error) {
-    console.error('Failed to initialize frame animation:', error);
     displayStaticFrame();
     return false;
   }
@@ -1415,7 +921,6 @@ async function initializeFrameAnimation() {
  * Task 8: Navigation functionality
  * - Scroll event listener for navigation scroll effect
  * - Smooth scroll for navigation links
- * - Scroll indicator click handler
  */
 function setupNavigation() {
   // Navigation scroll effect - add "scrolled" class at 100px
@@ -1442,35 +947,6 @@ function setupNavigation() {
     });
   });
   
-  // Scroll indicator click handler
-  const scrollIndicator = document.querySelector('.scroll-indicator');
-  if (scrollIndicator) {
-    scrollIndicator.addEventListener('click', () => {
-      const mainContent = document.getElementById('main-content');
-      if (mainContent) {
-        mainContent.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start'
-        });
-      }
-    });
-    
-    // Keyboard accessibility for scroll indicator
-    scrollIndicator.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        const mainContent = document.getElementById('main-content');
-        if (mainContent) {
-          mainContent.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-          });
-        }
-      }
-    });
-  }
-  
-  console.log('✓ Navigation functionality initialized');
 }
 
 /**
@@ -1660,7 +1136,6 @@ function initializeContentSections() {
     y: 50
   });
   
-  console.log('✓ Content section animations initialized');
 }
 
 /**
@@ -1692,7 +1167,6 @@ function setupResponsiveAndPerformance() {
     videoObserver.observe(video);
   });
   
-  console.log('✓ Responsive behavior and performance optimizations applied');
 }
 
 /**
@@ -1712,19 +1186,36 @@ function setupErrorHandlingAndResize() {
       // Refresh all ScrollTrigger instances
       ScrollTrigger.refresh();
       
-      console.log('Window resized - ScrollTrigger refreshed');
     }, 250);
   });
   
-  console.log('✓ Error handling and resize listeners initialized');
 }
 
 /**
  * Main initialization function
  * Task 17: Final integration and polish
  */
+/**
+ * Register service worker for caching
+ */
+async function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    try {
+      await navigator.serviceWorker.register('./service-worker.js', { scope: './' });
+      await navigator.serviceWorker.ready;
+    } catch (error) {
+      // Continue without service worker
+    }
+  }
+}
+
+/**
+ * Main initialization function
+ */
 async function initializeApp() {
-  console.log('🔥 Initializing HERMANOSBARBER2...');
+  
+  // Register service worker first
+  registerServiceWorker();
   
   // Check for reduced motion preference
   if (checkReducedMotion()) {
@@ -1748,7 +1239,6 @@ async function initializeApp() {
   // Task 12: Setup error handling and resize listeners
   setupErrorHandlingAndResize();
   
-  console.log('✓ HERMANOSBARBER2 initialized successfully!');
 }
 
 // Initialize on DOMContentLoaded

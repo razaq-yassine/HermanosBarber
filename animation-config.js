@@ -18,7 +18,7 @@ const ANIMATION_CONFIG = {
     // Enable or disable snap scrolling
     // true = snap to specific frames with text overlays
     // false = smooth continuous scrolling through all frames
-    enabled: true,
+    enabled: false,
     
     // Mode: 'auto' or 'manual'
     // 'auto' = automatically divide frames evenly by maxScrollSteps
@@ -40,9 +40,11 @@ const ANIMATION_CONFIG = {
     // - side: 'left' or 'right' (optional, defaults to alternating)
     // - position: 'top', 'center', 'bottom' (optional, defaults to center)
     // - mobilePosition: 'top', 'center', 'bottom' (optional, overrides position on mobile)
+    // - showAtProgress: 0-1 value indicating when to show (0 = start, 1 = end)
     texts: [
-      { content: 'COUPES PREMIUM', side: 'left', mobilePosition: 'top' },
-      { content: 'STYLE EXPERT', side: 'right', position: 'bottom' }
+      { content: 'HERMANOS BARBER', side: 'left', position: 'top', showAtProgress: 0.1 },
+      { content: 'STYLE & TRADITION', side: 'left', position: 'bottom', showAtProgress: 0.5 },
+      { content: 'RÉSERVEZ MAINTENANT', side: 'center', position: 'bottom', showAtProgress: 0.85 }
     ]
   }
 };
