@@ -217,44 +217,6 @@ class FramePreloader {
     });
     
     return img;
-        const framePath = this.getFramePath(i);
-        
-        // Create promise that resolves when image loads and decodes
-        await new Promise((resolve, reject) => {
-          img.onload = async () => {
-            try {
-              // Use img.decode() to ensure frame is fully decoded and ready
-              await img.decode();
-              
-              // Cache the loaded frame
-              this.frameCache.set(i, img);
-              this.loadedFrames.add(i);
-              
-              // Emit progress event
-              this.emit("progress", this.getLoadProgress());
-              
-              resolve();
-            } catch (decodeError) {
-              reject(new Error(`Failed to decode frame ${i}: ${decodeError.message}`));
-            }
-          };
-          
-          img.onerror = () => {
-            reject(new Error(`Failed to load frame ${i} from ${framePath}`));
-          };
-          
-          // Start loading the image
-          img.src = framePath;
-        });
-        
-      } catch (error) {
-        console.error(`Error loading priority frame ${i}:`, error);
-        this.emit("error", { frameIndex: i, error: error.message });
-        throw error; // Re-throw to stop priority loading on failure
-      }
-    }
-    
-    console.log(`✅ Phase 1 complete: Priority frames 1-${priorityCount} loaded`);
   }
   
   /**
