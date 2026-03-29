@@ -130,7 +130,11 @@ class FramePreloader {
   
   /**
    * Load priority frames (frames 1-10) sequentially
-   * Uses Image objects with img.decode() to ensure frames are fully decoded and ready
+   * PROGRESSIVE LOADING STRATEGY:
+   * - Phase 1: Frames 1-10 (show page immediately)
+   * - Phase 2: Frames 11-125 (first scroll section)
+   * - Phase 3: Frame 250 (last snap point)
+   * - Phase 4: Frames 126-249 (middle section)
    * 
    * @async
    * @returns {Promise<void>} Resolves when all priority frames are loaded
@@ -138,6 +142,8 @@ class FramePreloader {
    */
   async loadPriorityFrames() {
     const priorityCount = Math.min(this.priorityFrames, this.frameCount);
+    
+    console.log(`🎬 Phase 1: Loading priority frames 1-${priorityCount}...`);
     
     for (let i = 1; i <= priorityCount; i++) {
       try {
@@ -179,30 +185,71 @@ class FramePreloader {
       }
     }
     
-    console.log(`Priority frames 1-${priorityCount} loaded successfully`);
+    console.log(`✅ Phase 1 complete: Priority frames 1-${priorityCount} loaded`);
   }
   
   /**
-   * Load remaining frames (frames 11-50) in parallel with concurrency limit
-   * Uses parallel loading with max 5 concurrent requests to avoid overwhelming the browser
-   * Emits "progress" events as frames load and "frames-ready" when all frames are loaded
+   * Load remaining frames with progressive strategy
+   * PROGRESSIVE LOADING PHASES:
+   * - Phase 2: Frames 11-125 (first scroll section - high priority)
+   * - Phase 3: Frame 250 (last snap point - high priority)
+   * - Phase 4: Frames 126-249 (middle section - lower priority)
    * 
-   * @param {number} maxConcurrent - Maximum number of concurrent frame loads (default: 5)
+   * @param {number} maxConcurrent - Maximum number of concurrent frame loads (default: 8)
    */
-  loadRemainingFrames(maxConcurrent = 5) {
-    const startFrame = this.priorityFrames + 1;
-    const endFrame = this.frameCount;
+  loadRemainingFrames(maxConcurrent = 8) {
+    console.log(`🎬 Starting progressive background loading...`);
     
-    // Create array of frame indices to load
-    const framesToLoad = [];
-    for (let i = startFrame; i <= endFrame; i++) {
-      framesToLoad.push(i);
+    // Phase 2: Load frames 11-125 (first scroll section)
+    const phase2Frames = [];
+    for (let i = this.priorityFrames + 1; i <= 125; i++) {
+      phase2Frames.push(i);
     }
     
-    console.log(`Starting background loading of frames ${startFrame}-${endFrame} with max ${maxConcurrent} concurrent requests`);
+    // Phase 3: Load frame 250 (last snap point)
+    const phase3Frames = [250];
+    
+    // Phase 4: Load frames 126-249 (middle section)
+    const phase4Frames = [];
+    for (let i = 126; i <= 249; i++) {
+      phase4Frames.push(i);
+    }
+    
+    // Start Phase 2 immediately
+    this._loadPhase(2, phase2Frames, maxConcurrent, () => {
+      console.log(`✅ Phase 2 complete: First scroll section (frames 11-125) loaded`);
+      
+      // Start Phase 3 after Phase 2
+      this._loadPhase(3, phase3Frames, 1, () => {
+        console.log(`✅ Phase 3 complete: Last snap point (frame 250) loaded`);
+        
+        // Start Phase 4 after Phase 3
+        this._loadPhase(4, phase4Frames, maxConcurrent, () => {
+          console.log(`✅ Phase 4 complete: All frames loaded!`);
+        });
+      });
+    });
+  }
+  
+  /**
+   * Load a specific phase of frames
+   * 
+   * @private
+   * @param {number} phaseNumber - Phase number for logging
+   * @param {number[]} frameIndices - Array of frame indices to load
+   * @param {number} maxConcurrent - Maximum number of concurrent loads
+   * @param {Function} onComplete - Callback when phase completes
+   */
+  _loadPhase(phaseNumber, frameIndices, maxConcurrent, onComplete) {
+    if (frameIndices.length === 0) {
+      if (onComplete) onComplete();
+      return;
+    }
+    
+    console.log(`🎬 Phase ${phaseNumber}: Loading ${frameIndices.length} frames with max ${maxConcurrent} concurrent requests`);
     
     // Load frames with concurrency control
-    this._loadFramesWithConcurrency(framesToLoad, maxConcurrent);
+    this._loadFramesWithConcurrency(frameIndices, maxConcurrent, onComplete);
   }
   
   /**
@@ -212,8 +259,9 @@ class FramePreloader {
    * @private
    * @param {number[]} frameIndices - Array of frame indices to load
    * @param {number} maxConcurrent - Maximum number of concurrent loads
+   * @param {Function} onComplete - Optional callback when all frames in this batch are loaded
    */
-  async _loadFramesWithConcurrency(frameIndices, maxConcurrent) {
+  async _loadFramesWithConcurrency(frameIndices, maxConcurrent, onComplete) {
     let currentIndex = 0;
     let activeLoads = 0;
     let completedLoads = 0;
@@ -230,9 +278,14 @@ class FramePreloader {
         // Emit progress event
         this.emit("progress", this.getLoadProgress());
         
+        // Check if this batch is complete
+        if (completedLoads === totalFrames) {
+          if (onComplete) onComplete();
+        }
+        
         // Check if all frames are loaded
         if (this.loadedFrames.size === this.frameCount) {
-          console.log('All frames loaded successfully');
+          console.log('🎉 All 250 frames loaded successfully!');
           this.emit("frames-ready", { 
             totalFrames: this.frameCount,
             loadProgress: this.getLoadProgress()
@@ -243,6 +296,11 @@ class FramePreloader {
         console.error(`Failed to load frame ${frameIndex} after retries:`, error);
         this.emit("error", { frameIndex, error: error.message });
         completedLoads++;
+        
+        // Check if this batch is complete even with errors
+        if (completedLoads === totalFrames) {
+          if (onComplete) onComplete();
+        }
       } finally {
         activeLoads--;
         
@@ -1239,8 +1297,11 @@ async function initializeFrameAnimation() {
     
     console.log('✓ FrameAnimationSystem initialized successfully');
     
-    // Load remaining frames (11-50) in background
-    framePreloader.loadRemainingFrames(5);
+    // Start progressive background loading immediately
+    // Phase 2: Frames 11-125 (first scroll section)
+    // Phase 3: Frame 250 (last snap point)
+    // Phase 4: Frames 126-249 (middle section)
+    framePreloader.loadRemainingFrames(8); // Increased concurrency for faster loading
     
     // Store reference globally for debugging
     window.frameAnimationSystem = frameAnimationSystem;
